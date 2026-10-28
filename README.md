@@ -1,6 +1,6 @@
 # Araya Business Hub - Modul 3: Manajemen Partner
 
-Backend service untuk pendaftaran dan pengelolaan partner Araya Business Hub.
+Repositori bersama Modul 3 (Manajemen Partner) Araya Business Hub untuk seluruh tim (Frontend, Backend, Database, dan QA/Tester). Modul backend dan API DRF terintegrasi langsung di dalam proyek ini.
 
 ## Integrasi Modul
 - M1: Akun dan autentikasi
