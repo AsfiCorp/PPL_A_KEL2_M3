@@ -64,12 +64,19 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'status', 'created_at']
 
     def validate_email_usaha(self, value):
-        # Validasi format email sesuai Acceptance Criteria M3-US1 (AC 4)
+        # Validasi format email (AC 4)
         try:
             validate_email(value)
         except DjangoValidationError:
             raise serializers.ValidationError('Format email tidak valid.')
-        return value.lower()
+
+        normalized_email = value.lower()
+
+        # Validasi keunikan email (AC 3)
+        if Partner.objects.filter(email_usaha__iexact=normalized_email).exists():
+            raise serializers.ValidationError('Email sudah terdaftar.')
+
+        return normalized_email
 
     def create(self, validated_data):
         validated_data['status'] = Partner.StatusPendaftaran.PENDING
