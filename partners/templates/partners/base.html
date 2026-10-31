@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% block title %}Araya Business Hub{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'partners/site.css' %}">
+    <script src="{% static 'partners/site.js' %}" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <button class="icon-button menu-toggle" type="button" aria-label="Buka menu" aria-controls="app-sidebar" aria-expanded="false">
+            <span class="menu-icon" aria-hidden="true"></span>
+        </button>
+        <a class="brand" href="{% url 'partner_ui:home' %}" aria-label="Araya Business Hub, beranda">
+            <span class="brand-mark" aria-hidden="true">A</span>
+            <span>Araya Business Hub</span>
+        </a>
+        <form class="top-search" role="search" action="{% url 'partner_ui:my-store' %}" method="get">
+            <label class="visually-hidden" for="site-search">Cari</label>
+            <input id="site-search" type="search" name="q" placeholder="Cari…" value="{{ request.GET.q|default:'' }}">
+        </form>
+        <details class="profile-menu">
+            <summary aria-label="Menu pengguna">
+                <span class="profile-name">{% if request.user.is_authenticated %}{{ request.user.get_short_name|default:request.user.username }}{% else %}Pengguna{% endif %}</span>
+                <span class="avatar" aria-hidden="true">{% if request.user.is_authenticated %}{{ request.user.get_short_name|default:request.user.username|first|upper }}{% else %}P{% endif %}</span>
+            </summary>
+            <div class="profile-panel">
+                <p class="profile-panel-title">{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}Menu pengguna{% endif %}</p>
+                <a href="{% url 'partner_ui:my-store' %}">Toko saya</a>
+                <span class="menu-item-muted">Akun dan pesanan tersedia setelah integrasi modul akun.</span>
+            </div>
+        </details>
+    </header>
+
+    <div class="app-shell">
+        <div class="sidebar-backdrop" hidden></div>
+        <aside class="sidebar" id="app-sidebar" aria-label="Navigasi utama">
+            <p class="sidebar-heading">Modul partner</p>
+            <nav class="sidebar-nav">
+                <a class="nav-link{% if active_page == 'home' %} is-active{% endif %}" href="{% url 'partner_ui:home' %}">
+                    <span class="nav-icon" aria-hidden="true">⌂</span> Beranda
+                </a>
+                <a class="nav-link{% if active_page == 'my_store' %} is-active{% endif %}" href="{% url 'partner_ui:my-store' %}">
+                    <span class="nav-icon" aria-hidden="true">▤</span> Toko saya
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrap">
+                {% if messages %}
+                    <div class="message-stack" aria-live="polite">
+                        {% for message in messages %}
+                            <div class="message-banner message-{{ message.tags }}" role="status">
+                                <span class="message-dot" aria-hidden="true"></span>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

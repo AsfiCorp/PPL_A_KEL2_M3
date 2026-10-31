@@ -1,0 +1,63 @@
+{% extends 'partners/base.html' %}
+
+{% block title %}Toko saya | Araya Business Hub{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Jejak halaman">
+    <a href="{% url 'partner_ui:home' %}">Beranda</a><span aria-hidden="true">/</span><span>Toko saya</span>
+</nav>
+<section class="page-heading">
+    <div>
+        <h1>Toko saya</h1>
+        <p>Mulai berjualan dengan mendaftarkan usaha Anda sebagai partner Araya Business Hub.</p>
+    </div>
+</section>
+
+<section class="card callout-card" aria-labelledby="start-selling-title">
+    <div class="store-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+            <path d="M4 13.5 7.5 6h17l3.5 7.5v2a3.5 3.5 0 0 1-6 2.45 3.5 3.5 0 0 1-6 0 3.5 3.5 0 0 1-6 0A3.5 3.5 0 0 1 4 15.5v-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M7.5 18v8h17v-8M13 26v-7h6v7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <h2 id="start-selling-title">Mulai berjualan bersama Araya Business Hub</h2>
+    <p>Jadilah partner Araya Business Hub dan kembangkan usaha Anda dengan menjangkau lebih banyak pelanggan. Daftarkan usaha Anda sekarang.</p>
+    <a class="button button-primary" href="{% url 'partner_ui:partner-registration' %}">Pendaftaran partner</a>
+</section>
+
+{% if partners %}
+<section class="section-block" aria-labelledby="applications-title">
+    <div class="section-heading">
+        <div>
+            <h2 id="applications-title">Pendaftaran usaha</h2>
+            <p>Periksa status pendaftaran partner Anda.</p>
+        </div>
+    </div>
+    <div class="application-list">
+        {% for partner in partners %}
+        <article class="card application-card">
+            <div class="application-details">
+                <h3>{{ partner.nama_usaha }}</h3>
+                <p>{{ partner.get_kategori_usaha_display }}</p>
+            </div>
+            {% if partner.status == 'pending' %}
+                <span class="status-badge status-pending"><span class="status-dot"></span>Menunggu persetujuan</span>
+            {% elif partner.status == 'terverifikasi' %}
+                <span class="status-badge status-success"><span class="status-dot"></span>Terverifikasi</span>
+            {% elif partner.status == 'ditolak' %}
+                <span class="status-badge status-danger"><span class="status-dot"></span>Ditolak</span>
+            {% else %}
+                <span class="status-badge status-neutral"><span class="status-dot"></span>Ditangguhkan</span>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% elif query %}
+<section class="card search-empty" role="status">
+    <p>Tidak ada pendaftaran usaha yang cocok dengan “{{ query }}”.</p>
+</section>
+{% else %}
+<section class="card empty-store" aria-label="Belum ada usaha terdaftar"></section>
+{% endif %}
+{% endblock %}

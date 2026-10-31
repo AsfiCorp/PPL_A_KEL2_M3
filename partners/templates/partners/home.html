@@ -1,0 +1,29 @@
+{% extends 'partners/base.html' %}
+
+{% block title %}Beranda | Araya Business Hub{% endblock %}
+
+{% block content %}
+
+<section class="page-heading">
+    <div>
+        <h1>Beranda</h1>
+        <p>Temukan peluang dan kembangkan usaha bersama Araya Business Hub.</p>
+    </div>
+</section>
+
+<section class="card welcome-card" aria-labelledby="welcome-title">
+    <div class="welcome-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+            <path d="M4 13.5 7.5 6h17l3.5 7.5v2a3.5 3.5 0 0 1-6 2.45 3.5 3.5 0 0 1-6 0 3.5 3.5 0 0 1-6 0A3.5 3.5 0 0 1 4 15.5v-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M7.5 18v8h17v-8M13 26v-7h6v7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <h2 id="welcome-title">Mulai berjualan bersama Araya Business Hub</h2>
+    <p>Jadilah partner dan kembangkan usaha Anda dengan menjangkau lebih banyak pelanggan. Daftarkan usaha Anda sekarang.</p>
+    <a class="button button-primary" href="{% url 'partner_ui:my-store' %}">Toko saya</a>
+</section>
+
+<section class="card home-placeholder" aria-label="Konten beranda">
+    <p class="empty-note">Informasi dan peluang untuk partner akan ditampilkan di sini.</p>
+</section>
+{% endblock %}

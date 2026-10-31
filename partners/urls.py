@@ -1,9 +1,12 @@
 from django.urls import path
-from .views import PartnerRegistrationView
+from . import views
 
 app_name = 'partners'
 
 urlpatterns = [
-    path('register/', PartnerRegistrationView.as_view(), name='partner-register'),
+    path('', views.home, name='home'),
+    path('toko-saya/', views.my_store, name='my-store'),
+    path('pendaftaran-partner/', views.register_partner, name='partner-registration'),
+    path('pendaftaran-partner/status/', views.registration_status, name='registration-status'),
+    path('register/', views.PartnerRegistrationView.as_view(), name='partner-register'),
 ]
-

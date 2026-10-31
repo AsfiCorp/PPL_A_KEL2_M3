@@ -36,6 +36,15 @@ Jalankan server:
 ```
 Server berjalan di `http://127.0.0.1:8000/`.
 
+## Antarmuka Django
+Antarmuka pendaftaran partner menggunakan template Django dan bisa dibuka setelah server berjalan:
+- Beranda: `/`
+- Toko saya: `/toko-saya/`
+- Form pendaftaran partner: `/pendaftaran-partner/`
+- Status pengajuan setelah form berhasil dikirim: `/pendaftaran-partner/status/`
+
+Form UI memakai validasi server-side dan mendukung gambar PNG, JPG, atau JPEG hingga 5 MB. Endpoint API tetap tersedia di `/api/partners/register/`.
+
 ## API Pendaftaran Partner (POST)
 - Endpoint: `/api/partners/register/`
 - Method: `POST`

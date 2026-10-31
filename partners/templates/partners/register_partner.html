@@ -1,0 +1,79 @@
+{% extends 'partners/base.html' %}
+
+{% block title %}Pendaftaran partner | Araya Business Hub{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Jejak halaman">
+    <a href="{% url 'partner_ui:home' %}">Beranda</a><span aria-hidden="true">/</span>
+    <a href="{% url 'partner_ui:my-store' %}">Toko saya</a><span aria-hidden="true">/</span>
+    <span>Pendaftaran partner</span>
+</nav>
+<section class="page-heading">
+    <div>
+        <h1>Pendaftaran partner</h1>
+        <p>Lengkapi informasi usaha Anda untuk bergabung sebagai partner Araya Business Hub.</p>
+    </div>
+</section>
+
+<form class="card registration-form" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="form-summary" role="alert">
+            <strong>Pendaftaran belum dapat dikirim.</strong>
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+    {% endif %}
+    <fieldset class="form-fieldset">
+        <legend>Informasi usaha</legend>
+        <div class="form-grid">
+            <div class="form-field">
+                <label for="{{ form.nama_usaha.id_for_label }}">Nama usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.nama_usaha }}
+                {% for error in form.nama_usaha.errors %}<p class="field-error" id="nama-usaha-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.kategori_usaha.id_for_label }}">Kategori usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.kategori_usaha }}
+                {% for error in form.kategori_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field form-field-wide">
+                <label for="{{ form.deskripsi_usaha.id_for_label }}">Deskripsi usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.deskripsi_usaha }}
+                {% for error in form.deskripsi_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field form-field-wide">
+                <label for="{{ form.alamat_usaha.id_for_label }}">Alamat usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.alamat_usaha }}
+                {% for error in form.alamat_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.nomor_telepon_usaha.id_for_label }}">Nomor telepon usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.nomor_telepon_usaha }}
+                {% for error in form.nomor_telepon_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.email_usaha.id_for_label }}">Email usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                {{ form.email_usaha }}
+                {% for error in form.email_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-field form-field-wide">
+                <label for="{{ form.profil_usaha.id_for_label }}">Profil usaha <span class="optional-note">(opsional)</span></label>
+                <label class="upload-control" for="{{ form.profil_usaha.id_for_label }}">
+                    <span class="upload-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <strong id="upload-label">Pilih gambar</strong>
+                    <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau JPEG</span>
+                    {{ form.profil_usaha }}
+                </label>
+                {% for error in form.profil_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+                {% if form.profil_usaha.help_text %}<p class="help-text">{{ form.profil_usaha.help_text }}</p>{% endif %}
+            </div>
+        </div>
+    </fieldset>
+    <div class="form-actions">
+        <a class="button button-secondary" href="{% url 'partner_ui:my-store' %}">Batal</a>
+        <button class="button button-primary" type="submit">Daftarkan usaha</button>
+    </div>
+</form>
+{% endblock %}

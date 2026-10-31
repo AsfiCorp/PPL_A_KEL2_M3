@@ -1,0 +1,73 @@
+{% extends 'partners/base.html' %}
+
+{% block title %}Status pendaftaran | Araya Business Hub{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Jejak halaman">
+    <a href="{% url 'partner_ui:home' %}">Beranda</a><span aria-hidden="true">/</span>
+    <a href="{% url 'partner_ui:my-store' %}">Toko saya</a><span aria-hidden="true">/</span>
+    <span>Status pendaftaran</span>
+</nav>
+<section class="page-heading">
+    <div>
+        <h1>Pendaftaran partner</h1>
+        <p>Mulai berjualan dengan mendaftarkan usaha Anda sebagai partner Araya Business Hub.</p>
+    </div>
+</section>
+
+<section class="card status-card">
+    <div class="status-intro">
+        <div class="status-clock" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="M24 13v12l8 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        {% if partner.status == 'pending' %}
+            <h2>Pendaftaran berhasil dikirim</h2>
+            <p>Pendaftaran usaha Anda sedang menunggu verifikasi admin.</p>
+        {% elif partner.status == 'terverifikasi' %}
+            <h2>Pendaftaran disetujui</h2>
+            <p>Pendaftaran usaha Anda telah diverifikasi.</p>
+        {% elif partner.status == 'ditolak' %}
+            <h2>Pendaftaran ditolak</h2>
+            <p>Pendaftaran usaha Anda belum dapat disetujui.</p>
+        {% else %}
+            <h2>Pendaftaran ditangguhkan</h2>
+            <p>Status pendaftaran usaha Anda telah diperbarui oleh admin.</p>
+        {% endif %}
+    </div>
+
+    <div class="status-information">
+        <h3>Informasi pendaftaran</h3>
+        <dl class="details-list">
+            <div class="detail-row">
+                <dt>Status pendaftaran</dt>
+                <dd>
+                    {% if partner.status == 'pending' %}
+                        <span class="status-badge status-pending"><span class="status-dot"></span>Menunggu persetujuan</span>
+                    {% elif partner.status == 'terverifikasi' %}
+                        <span class="status-badge status-success"><span class="status-dot"></span>Terverifikasi</span>
+                    {% elif partner.status == 'ditolak' %}
+                        <span class="status-badge status-danger"><span class="status-dot"></span>Ditolak</span>
+                    {% else %}
+                        <span class="status-badge status-neutral"><span class="status-dot"></span>Ditangguhkan</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="detail-row">
+                <dt>Nama usaha</dt>
+                <dd>{{ partner.nama_usaha }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Kategori usaha</dt>
+                <dd>{{ partner.get_kategori_usaha_display }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Tanggal pengajuan</dt>
+                <dd>{{ submitted_at|date:"j M Y" }}</dd>
+            </div>
+        </dl>
+    </div>
+    <div class="status-actions">
+        <a class="button button-primary" href="{% url 'partner_ui:home' %}">Beranda</a>
+    </div>
+</section>
+{% endblock %}
