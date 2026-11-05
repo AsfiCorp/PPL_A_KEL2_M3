@@ -14,6 +14,7 @@ User = get_user_model()
 class PartnerRegistrationAPITestCase(APITestCase):
     def setUp(self):
         self.url = reverse('partners:partner-register')
+        self.v1_url = reverse('partners_api:partner-list-create')
         self.valid_payload = {
             "nama_usaha": "Toko Berkah Sejahtera",
             "kategori_usaha": "Produk",
@@ -31,21 +32,117 @@ class PartnerRegistrationAPITestCase(APITestCase):
         response = self.client.post(self.url, data=self.valid_payload, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data.get('status'), 'success')
+        self.assertTrue(response.data.get('success', False) or response.data.get('status') == 'success')
         self.assertIn('data', response.data)
         self.assertEqual(response.data['data']['nama_usaha'], self.valid_payload['nama_usaha'])
         self.assertEqual(response.data['data']['email_usaha'], self.valid_payload['email_usaha'])
         self.assertEqual(response.data['data']['status'], 'pending')
 
-        # Verifikasi data tersimpan di database
         partner = Partner.objects.get(email_usaha=self.valid_payload['email_usaha'])
         self.assertEqual(partner.status, Partner.StatusPendaftaran.PENDING)
         self.assertEqual(partner.nama_usaha, self.valid_payload['nama_usaha'])
 
+    def test_post_partner_registration_v1_contract_compliance(self):
+        """
+        Menguji endpoint standar v1: POST /api/m3/v1/partners/
+        Sesuai Panduan API Bersama: amplop success: true dan HTTP 201 Created.
+        """
+        response = self.client.post(self.v1_url, data=self.valid_payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data.get('success'))
+        self.assertIn('data', response.data)
+        self.assertEqual(response.data['data']['status'], 'pending')
+
+    def test_post_partner_registration_v1_error_envelope_422(self):
+        """
+        Menguji galat validasi field kosong pada v1:
+        Sesuai Panduan API Bersama: status 422, amplop success: false, error.code, error.fields.
+        """
+        invalid_payload = {
+            "kategori_usaha": "Produk"
+        }
+        response = self.client.post(self.v1_url, data=invalid_payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertIn('error', response.data)
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('nama_usaha', response.data['error']['fields'])
+
+    def test_post_partner_registration_v1_duplicate_email_409(self):
+        """
+        Menguji galat duplikasi email:
+        Sesuai Panduan API Bersama: status 409 Conflict, code EMAIL_DUPLICATE.
+        """
+        self.client.post(self.v1_url, data=self.valid_payload, format='json')
+        response = self.client.post(self.v1_url, data=self.valid_payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'EMAIL_DUPLICATE')
+        self.assertEqual(response.data['error']['message'], 'Email sudah terdaftar.')
+
+    def test_get_partners_catalog_k06_contract(self):
+        """
+        Menguji Kontrak K-06: GET /api/m3/v1/partners?status=terverifikasi
+        """
+        Partner.objects.create(
+            nama_usaha="Toko Aktif 1",
+            kategori_usaha="Produk",
+            deskripsi_usaha="Deskripsi toko.",
+            alamat_usaha="Alamat toko.",
+            nomor_telepon_usaha="081234567891",
+            email_usaha="aktif1@example.com",
+            status=Partner.StatusPendaftaran.TERVERIFIKASI
+        )
+        Partner.objects.create(
+            nama_usaha="Toko Pending 2",
+            kategori_usaha="Produk",
+            deskripsi_usaha="Deskripsi toko.",
+            alamat_usaha="Alamat toko.",
+            nomor_telepon_usaha="081234567892",
+            email_usaha="pending2@example.com",
+            status=Partner.StatusPendaftaran.PENDING
+        )
+
+        response = self.client.get(f"{self.v1_url}?status=terverifikasi")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(len(response.data['data']), 1)
+        self.assertEqual(response.data['data'][0]['nama_usaha'], "Toko Aktif 1")
+        self.assertIn('meta', response.data)
+        self.assertEqual(response.data['meta']['total'], 1)
+
+    def test_get_partner_detail_m3_us3(self):
+        """
+        Menguji detail partner: GET /api/m3/v1/partners/<id>/
+        """
+        partner = Partner.objects.create(
+            nama_usaha="Toko Detail",
+            kategori_usaha="Jasa",
+            deskripsi_usaha="Deskripsi.",
+            alamat_usaha="Alamat.",
+            nomor_telepon_usaha="081234567893",
+            email_usaha="detail@example.com",
+            status=Partner.StatusPendaftaran.PENDING
+        )
+        detail_url = reverse('partners_api:partner-detail', kwargs={'pk': partner.pk})
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['nama_usaha'], "Toko Detail")
+
+    def test_openapi_and_docs_endpoints(self):
+        """
+        Menguji ketersediaan halaman dokumentasi Swagger dan schema OpenAPI.
+        """
+        docs_res = self.client.get(reverse('api-docs'))
+        self.assertEqual(docs_res.status_code, status.HTTP_200_OK)
+        self.assertIn('swagger-ui', docs_res.content.decode('utf-8'))
+
+        schema_res = self.client.get(reverse('openapi-yaml'))
+        self.assertEqual(schema_res.status_code, status.HTTP_200_OK)
+        self.assertIn('openapi: 3.0.3', schema_res.content.decode('utf-8'))
+
     def test_post_partner_registration_authenticated_user(self):
-        """
-        Task T4: Menguji pendaftaran dengan user terotentikasi (opsional sesuai drawer profil).
-        """
         user = User.objects.create_user(username='muhammad', email='muhammad@example.com', password='password123')
         self.client.force_authenticate(user=user)
 
@@ -57,10 +154,6 @@ class PartnerRegistrationAPITestCase(APITestCase):
         self.assertEqual(partner.status, 'pending')
 
     def test_post_partner_registration_with_optional_image(self):
-        """
-        Task T4: Menguji pendaftaran partner dengan upload profil usaha (opsional).
-        """
-        # Generate dummy image in memory
         image_file = io.BytesIO()
         image = Image.new('RGB', (100, 100), color='blue')
         image.save(image_file, 'png')

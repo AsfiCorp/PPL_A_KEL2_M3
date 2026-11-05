@@ -1,4 +1,7 @@
+from pathlib import Path
+from django.conf import settings
 from django.contrib import messages
+from django.http import HttpResponse, Http404
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -72,13 +75,94 @@ def registration_status(request):
     )
 
 
-class PartnerRegistrationView(APIView):
+def openapi_yaml(request):
+    openapi_file = settings.BASE_DIR / 'docs' / 'openapi.yaml'
+    if not openapi_file.exists():
+        raise Http404('File docs/openapi.yaml tidak ditemukan.')
+    return HttpResponse(openapi_file.read_text(encoding='utf-8'), content_type='text/yaml')
+
+
+def api_docs(request):
+    html_content = """<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Dokumentasi API Modul M3 - Araya Business Hub</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <style>
+    body { margin: 0; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: '/api/m3/v1/openapi.yaml',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+      });
+    };
+  </script>
+</body>
+</html>"""
+    return HttpResponse(html_content, content_type='text/html')
+
+
+class PartnerListCreateView(APIView):
     """
-    API Endpoint untuk pendaftaran calon Partner baru (M3-US1 / Task T4).
-    Metode: POST
-    Status awal pendaftaran: 'pending' (Menunggu Persetujuan)
+    Endpoint Modul 3:
+    POST /api/m3/v1/partners -> Pendaftaran partner baru (M3-US1).
+    GET  /api/m3/v1/partners -> Daftar partner terverifikasi untuk katalog M5 (K-06).
     """
     parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get(self, request, *args, **kwargs):
+        status_filter = request.GET.get('status', 'terverifikasi').strip()
+        queryset = Partner.objects.all()
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        search_query = request.GET.get('q', '').strip()
+        if search_query:
+            queryset = queryset.filter(nama_usaha__icontains=search_query)
+
+        try:
+            page = max(1, int(request.GET.get('page', 1)))
+        except ValueError:
+            page = 1
+
+        try:
+            per_page = min(100, max(1, int(request.GET.get('per_page', 20))))
+        except ValueError:
+            per_page = 20
+
+        total = queryset.count()
+        start = (page - 1) * per_page
+        end = start + per_page
+        records = queryset[start:end]
+
+        serializer = PartnerRegistrationSerializer(records, many=True)
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+        return Response(
+            {
+                "success": True,
+                "data": serializer.data,
+                "meta": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": total_pages,
+                }
+            },
+            status=status.HTTP_200_OK
+        )
 
     def post(self, request, *args, **kwargs):
         serializer = PartnerRegistrationSerializer(data=request.data, context={'request': request})
@@ -86,17 +170,85 @@ class PartnerRegistrationView(APIView):
             serializer.save()
             return Response(
                 {
+                    "success": True,
                     "status": "success",
                     "message": "Pendaftaran partner berhasil dikirim dan menunggu verifikasi.",
                     "data": serializer.data
                 },
                 status=status.HTTP_201_CREATED
             )
+
+        raw_errors = serializer.errors
+        fields_error = {}
+        for key, errs in raw_errors.items():
+            if isinstance(errs, list) and len(errs) > 0:
+                fields_error[key] = str(errs[0])
+            else:
+                fields_error[key] = str(errs)
+
+        # Analisis kode galat sesuai Panduan API Bersama
+        email_errors = raw_errors.get('email_usaha', [])
+        email_err_str = ' '.join(str(e) for e in email_errors).lower()
+
+        if 'sudah terdaftar' in email_err_str or 'already exists' in email_err_str:
+            error_code = 'EMAIL_DUPLICATE'
+            message = 'Email sudah terdaftar.'
+            http_status = status.HTTP_409_CONFLICT
+        elif 'tidak valid' in email_err_str or 'valid email' in email_err_str:
+            error_code = 'EMAIL_INVALID'
+            message = 'Format email tidak valid.'
+            http_status = status.HTTP_422_UNPROCESSABLE_ENTITY
+        else:
+            error_code = 'VALIDATION_ERROR'
+            message = 'Isian tidak lolos validasi. Periksa kelengkapan data.'
+            http_status = status.HTTP_422_UNPROCESSABLE_ENTITY
+
         return Response(
             {
+                "success": False,
                 "status": "error",
-                "message": "Pendaftaran gagal. Silakan periksa kembali data yang diisi.",
-                "errors": serializer.errors
+                "message": message,
+                "error": {
+                    "code": error_code,
+                    "message": message,
+                    "fields": fields_error
+                },
+                "errors": fields_error
             },
-            status=status.HTTP_400_BAD_REQUEST
+            status=http_status
         )
+
+
+class PartnerDetailView(APIView):
+    """
+    Endpoint Modul 3:
+    GET /api/m3/v1/partners/{id} -> Detail dan status pendaftaran partner (M3-US3).
+    """
+    def get(self, request, pk, *args, **kwargs):
+        try:
+            partner = Partner.objects.get(pk=pk)
+        except Partner.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "PARTNER_NOT_FOUND",
+                        "message": "Data partner tidak ditemukan.",
+                        "fields": None
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = PartnerRegistrationSerializer(partner)
+        return Response(
+            {
+                "success": True,
+                "data": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+# Alias untuk kompatibilitas endpoint awal
+PartnerRegistrationView = PartnerListCreateView
