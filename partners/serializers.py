@@ -59,12 +59,14 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             'email_usaha',
             'profil_usaha',
             'status',
+            'alasan_penolakan',
+            'alasan_penangguhan',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'status', 'created_at']
+        read_only_fields = ['id', 'status', 'alasan_penolakan', 'alasan_penangguhan', 'created_at', 'updated_at']
 
     def validate_email_usaha(self, value):
-        # Validasi format email (AC 4)
         try:
             validate_email(value)
         except DjangoValidationError:
@@ -72,8 +74,13 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
 
         normalized_email = value.lower()
 
-        # Validasi keunikan email (AC 3)
-        if Partner.objects.filter(email_usaha__iexact=normalized_email).exists():
+        # Validasi keunikan hanya saat create atau perubahan email
+        partner_id = self.instance.pk if self.instance else None
+        duplicate_qs = Partner.objects.filter(email_usaha__iexact=normalized_email)
+        if partner_id:
+            duplicate_qs = duplicate_qs.exclude(pk=partner_id)
+
+        if duplicate_qs.exists():
             raise serializers.ValidationError('Email sudah terdaftar.')
 
         return normalized_email

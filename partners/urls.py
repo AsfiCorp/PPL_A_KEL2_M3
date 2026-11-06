@@ -9,4 +9,5 @@ urlpatterns = [
     path('pendaftaran-partner/', views.register_partner, name='partner-registration'),
     path('pendaftaran-partner/status/', views.registration_status, name='registration-status'),
     path('register/', views.PartnerRegistrationView.as_view(), name='partner-register'),
+    path('<int:pk>/', views.PartnerDetailView.as_view(), name='partner-detail'),
 ]
