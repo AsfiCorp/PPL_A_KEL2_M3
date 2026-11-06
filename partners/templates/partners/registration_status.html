@@ -64,6 +64,12 @@
                 <dt>Tanggal pengajuan</dt>
                 <dd>{{ submitted_at|date:"j M Y" }}</dd>
             </div>
+            {% if partner.status == 'ditolak' and partner.alasan_penolakan %}
+            <div class="detail-row">
+                <dt>Alasan penolakan</dt>
+                <dd>{{ partner.alasan_penolakan }}</dd>
+            </div>
+            {% endif %}
         </dl>
     </div>
     <div class="status-actions">

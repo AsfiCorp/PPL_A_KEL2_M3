@@ -151,6 +151,26 @@ class PartnerRegistrationAPITestCase(APITestCase):
         self.assertTrue(res.data['success'])
         self.assertEqual(res.data['data']['status'], 'ditolak')
         self.assertEqual(res.data['data']['alasan_penolakan'], "Berkas NIB tidak valid atau belum terlampir.")
+        self.assertEqual(res.data['data']['rejection_reason'], "Berkas NIB tidak valid atau belum terlampir.")
+
+    def test_t11_rejection_reason_null_when_status_not_ditolak(self):
+        """
+        Task T11: Backend logic memastikan rejection_reason bernilai null bila status bukan 'ditolak'.
+        """
+        partner = Partner.objects.create(
+            nama_usaha="Toko Uji Terverifikasi",
+            kategori_usaha="Produk",
+            deskripsi_usaha="Deskripsi.",
+            alamat_usaha="Alamat.",
+            nomor_telepon_usaha="081234567896",
+            email_usaha="verif@example.com",
+            status=Partner.StatusPendaftaran.TERVERIFIKASI
+        )
+        url = reverse('partners_api:partner-detail', kwargs={'pk': partner.pk})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIsNone(res.data['data']['rejection_reason'])
+        self.assertIsNone(res.data['data']['alasan_penolakan'])
 
     def test_t10_get_partner_status_by_id_not_found(self):
         """
@@ -265,3 +285,24 @@ class PartnerRegistrationUITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('email_usaha', response.context['form'].errors)
         self.assertEqual(Partner.objects.count(), 1)
+
+    def test_t11_ui_shows_rejection_reason_when_ditolak(self):
+        partner = Partner.objects.create(
+            nama_usaha='Toko Ditolak UI',
+            kategori_usaha='Jasa',
+            deskripsi_usaha='Layanan.',
+            alamat_usaha='Jl. Merdeka No. 3',
+            nomor_telepon_usaha='081234567899',
+            email_usaha='ditolak_ui@example.com',
+            status=Partner.StatusPendaftaran.DITOLAK,
+            alasan_penolakan='Dokumen legalitas tidak lengkap.'
+        )
+        session = self.client.session
+        session['partner_application_id'] = partner.pk
+        session.save()
+
+        response = self.client.get(reverse('partner_ui:registration-status'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pendaftaran ditolak')
+        self.assertContains(response, 'Alasan penolakan')
+        self.assertContains(response, 'Dokumen legalitas tidak lengkap.')

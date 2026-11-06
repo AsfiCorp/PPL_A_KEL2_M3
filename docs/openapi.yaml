@@ -88,6 +88,11 @@ components:
           type: string
           nullable: true
           example: null
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan dari admin bila status bernilai 'ditolak' (M3-US3 AC 2).
+          example: null
         alasan_penangguhan:
           type: string
           nullable: true
