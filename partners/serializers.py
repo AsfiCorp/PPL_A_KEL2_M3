@@ -46,6 +46,11 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             'invalid': 'Format email tidak valid.',
         }
     )
+    rejection_reason = serializers.CharField(
+        source='alasan_penolakan',
+        read_only=True,
+        allow_null=True
+    )
 
     class Meta:
         model = Partner
@@ -60,11 +65,33 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             'profil_usaha',
             'status',
             'alasan_penolakan',
+            'rejection_reason',
             'alasan_penangguhan',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'status', 'alasan_penolakan', 'alasan_penangguhan', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id',
+            'status',
+            'alasan_penolakan',
+            'rejection_reason',
+            'alasan_penangguhan',
+            'created_at',
+            'updated_at',
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Logika backend rejection_reason (Task T11):
+        # Alasan penolakan hanya aktif bila status bernilai 'ditolak'.
+        if instance.status == Partner.StatusPendaftaran.DITOLAK:
+            reason = instance.alasan_penolakan or "Pendaftaran ditolak oleh administrator."
+            data['alasan_penolakan'] = reason
+            data['rejection_reason'] = reason
+        else:
+            data['alasan_penolakan'] = None
+            data['rejection_reason'] = None
+        return data
 
     def validate_email_usaha(self, value):
         try:
@@ -74,7 +101,6 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
 
         normalized_email = value.lower()
 
-        # Validasi keunikan hanya saat create atau perubahan email
         partner_id = self.instance.pk if self.instance else None
         duplicate_qs = Partner.objects.filter(email_usaha__iexact=normalized_email)
         if partner_id:
