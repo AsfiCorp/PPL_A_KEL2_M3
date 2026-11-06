@@ -111,24 +111,56 @@ class PartnerRegistrationAPITestCase(APITestCase):
         self.assertIn('meta', response.data)
         self.assertEqual(response.data['meta']['total'], 1)
 
-    def test_get_partner_detail_m3_us3(self):
+    def test_t10_get_partner_status_by_id_pending(self):
         """
-        Menguji detail partner: GET /api/m3/v1/partners/<id>/
+        Task T10: GET status pendaftaran partner berdasarkan ID (status pending).
         """
         partner = Partner.objects.create(
-            nama_usaha="Toko Detail",
+            nama_usaha="Toko Uji Pending",
+            kategori_usaha="Produk",
+            deskripsi_usaha="Deskripsi.",
+            alamat_usaha="Alamat.",
+            nomor_telepon_usaha="081234567894",
+            email_usaha="pending@example.com",
+            status=Partner.StatusPendaftaran.PENDING
+        )
+        url = reverse('partners_api:partner-detail', kwargs={'pk': partner.pk})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data['success'])
+        self.assertEqual(res.data['data']['status'], 'pending')
+        self.assertIsNone(res.data['data']['alasan_penolakan'])
+
+    def test_t10_get_partner_status_by_id_rejected_with_reason(self):
+        """
+        Task T10 / M3-US3 AC 2: GET status pendaftaran ditolak menampilkan alasan penolakan.
+        """
+        partner = Partner.objects.create(
+            nama_usaha="Toko Uji Ditolak",
             kategori_usaha="Jasa",
             deskripsi_usaha="Deskripsi.",
             alamat_usaha="Alamat.",
-            nomor_telepon_usaha="081234567893",
-            email_usaha="detail@example.com",
-            status=Partner.StatusPendaftaran.PENDING
+            nomor_telepon_usaha="081234567895",
+            email_usaha="ditolak@example.com",
+            status=Partner.StatusPendaftaran.DITOLAK,
+            alasan_penolakan="Berkas NIB tidak valid atau belum terlampir."
         )
-        detail_url = reverse('partners_api:partner-detail', kwargs={'pk': partner.pk})
-        response = self.client.get(detail_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(response.data['data']['nama_usaha'], "Toko Detail")
+        url = reverse('partners_api:partner-detail', kwargs={'pk': partner.pk})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data['success'])
+        self.assertEqual(res.data['data']['status'], 'ditolak')
+        self.assertEqual(res.data['data']['alasan_penolakan'], "Berkas NIB tidak valid atau belum terlampir.")
+
+    def test_t10_get_partner_status_by_id_not_found(self):
+        """
+        Task T10: GET partner dengan ID yang tidak ada mengembalikan 404 dan amplop error.
+        """
+        url = reverse('partners_api:partner-detail', kwargs={'pk': 99999})
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(res.data['success'])
+        self.assertEqual(res.data['error']['code'], 'PARTNER_NOT_FOUND')
 
     def test_openapi_and_docs_endpoints(self):
         """
