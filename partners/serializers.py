@@ -1,10 +1,18 @@
 from rest_framework import serializers
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.contrib.auth.hashers import make_password
 from .models import Partner
 
 
 class PartnerRegistrationSerializer(serializers.ModelSerializer):
+    partner_id = serializers.CharField(read_only=True)
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
     nama_usaha = serializers.CharField(
         max_length=255,
         error_messages={
@@ -56,6 +64,8 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
         model = Partner
         fields = [
             'id',
+            'partner_id',
+            'unit_usaha_id',
             'nama_usaha',
             'kategori_usaha',
             'deskripsi_usaha',
@@ -63,6 +73,13 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             'nomor_telepon_usaha',
             'email_usaha',
             'profil_usaha',
+            'penanggung_jawab_nama',
+            'penanggung_jawab_nik',
+            'tempat_lahir',
+            'tanggal_lahir',
+            'foto_ktp',
+            'foto_memegang_ktp',
+            'password',
             'status',
             'alasan_penolakan',
             'rejection_reason',
@@ -72,6 +89,7 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id',
+            'partner_id',
             'status',
             'alasan_penolakan',
             'rejection_reason',
@@ -101,10 +119,10 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
 
         normalized_email = value.lower()
 
-        partner_id = self.instance.pk if self.instance else None
+        partner_pk = self.instance.pk if self.instance else None
         duplicate_qs = Partner.objects.filter(email_usaha__iexact=normalized_email)
-        if partner_id:
-            duplicate_qs = duplicate_qs.exclude(pk=partner_id)
+        if partner_pk:
+            duplicate_qs = duplicate_qs.exclude(pk=partner_pk)
 
         if duplicate_qs.exists():
             raise serializers.ValidationError('Email sudah terdaftar.')
@@ -113,6 +131,10 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['status'] = Partner.StatusPendaftaran.PENDING
+
+        password = validated_data.pop('password', None)
+        if password:
+            validated_data['password_hash'] = make_password(password)
 
         request = self.context.get('request')
         if request and request.user and request.user.is_authenticated:
