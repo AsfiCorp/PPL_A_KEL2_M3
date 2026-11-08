@@ -216,19 +216,23 @@ components:
         password:
           type: string
           format: password
-          example: "PasswordAman123!"
-          description: Password akun partner untuk login ke Modul 1.
+          minLength: 8
+          example: "PasswordKuat2026"
+          description: Password akun partner untuk login ke Modul 1. Minimal 8 karakter kombinasi huruf dan angka (T5.2).
         profil_usaha:
           type: string
           format: binary
-          description: Berkas gambar profil (PNG/JPG) opsional.
+          description: Berkas gambar profil (PNG/JPG, ukuran maksimal 5 MB) opsional.
         penanggung_jawab_nama:
           type: string
           example: Budi Santoso
         penanggung_jawab_nik:
           type: string
+          pattern: '^[0-9]{16}$'
+          minLength: 16
+          maxLength: 16
           example: "3201234567890001"
-          description: NIK 16 digit penanggung jawab.
+          description: NIK penanggung jawab wajib tepat 16 digit angka (T5.2).
         tempat_lahir:
           type: string
           example: Bandung
@@ -239,11 +243,11 @@ components:
         foto_ktp:
           type: string
           format: binary
-          description: Berkas foto KTP penanggung jawab.
+          description: Berkas foto KTP penanggung jawab (format JPG/PNG, ukuran maksimal 5 MB).
         foto_memegang_ktp:
           type: string
           format: binary
-          description: Berkas foto selfie penanggung jawab memegang KTP.
+          description: Berkas foto selfie penanggung jawab memegang KTP (format JPG/PNG, ukuran maksimal 5 MB).
 
 paths:
   /partners:
