@@ -1,78 +1,167 @@
 # Araya Business Hub - Modul 3: Manajemen Partner
 
-Repositori resmi Modul 3 (Manajemen Partner) Araya Business Hub untuk seluruh tim (Frontend, Backend, Database, QA/Tester, dan Analis/Desain). Modul backend dan REST API terintegrasi langsung di dalam proyek ini.
+Repositori resmi Modul 3 (Manajemen Partner) Araya Business Hub untuk seluruh tim (Frontend, Backend, Database, QA/Tester, dan Analis/Desain). Modul ini bertindak sebagai **Single Source of Truth** untuk pendaftaran mandiri pelaku usaha, verifikasi identitas penanggung jawab, pengelolaan akun mitra, dan penyediaan master data partner terverifikasi untuk platform bersama.
 
-## Integrasi Antarmodul
-- **M1 (Akun & Auth)**: Integrasi akun mitra, autentikasi JWT, dan password hashing write-only.
-- **M2 (Master Usaha)**: Relasi `unit_usaha_id` untuk kategori dan klasifikasi unit usaha mitra.
-- **M4 (Penjualan & Produk)**: Validasi prasyarat status partner terverifikasi sebelum penambahan produk/jasa.
-- **M5 (Katalog Publik)**: Penyediaan daftar partner terverifikasi (Kontrak K-06).
+---
 
-## Arsitektur Branch
-- `main`: Production release.
-- `test`: Staging dan integrasi tim bersama.
-- `feature/<id-task>-<nama>`: Branch pengerjaan fitur.
+## 1. Arsitektur & Aliran Integrasi Lintas Modul
+
+Modul 3 terhubung langsung dengan empat modul lain dalam ekosistem Araya Business Hub:
+
+```
+                      +-----------------------------+
+                      |   MODUL 2: UNIT USAHA       |
+                      |   - Master Kategori Usaha   |
+                      |   - Dashboard Agregasi UMKM |
+                      +-----------------------------+
+                                     |
+               (GET Master Kategori) | (Metrik Agregat Mitra)
+                                     v
++-------------------+      +-----------------------+      +---------------------+
+|    CALON MITRA    | ===> |        MODUL 3        | ===> |  MODUL 5: KATALOG   |
+| (Frontend Web M3) | <=== |  (MANAJEMEN PARTNER)  |      |  - Katalog Publik   |
++-------------------+      |  - Registrasi Mitra   |      |  - Etalase Toko K-06|
+                           |  - Legalitas & NIK    |      +---------------------+
++-------------------+      |  - Keputusan Status   |
+|   ADMINISTRATOR   | ---> |  - Dual Lookup ID/PRT |      +---------------------+
+| (Verifikasi KTP)  |      +-----------------------+ ===> | MODUL 4: PENJUALAN  |
++-------------------+            |           ^            | - Izin Posting Prod |
+                                 |           |            | - Otorisasi Jual    |
+             (Sync Akun Mitra)   |           | (Bearer    +---------------------+
+             saat Terverifikasi  v           |  JWT Auth)
+                      +-----------------------------+
+                      |    MODUL 1: USER & AUTH     |
+                      |    - Autentikasi Pengguna   |
+                      |    - Penerbitan Token JWT   |
+                      +-----------------------------+
+```
+
+### Rincian Integrasi per Modul:
+
+1. **Modul 1 (User & Autentikasi - Kontrak K-01)**:
+   - **Penerimaan Kredensial**: Calon mitra mendaftarkan `email_usaha` dan `password` pada formulir Modul 3. Backend Modul 3 memvalidasi ketat (minimal 8 karakter kombinasi huruf dan angka), mengenkripsinya secara aman menggunakan `make_password()` (PBKDF2 SHA-256) secara *write-only*, dan tidak pernah membocorkannya pada respons API.
+   - **Sinkronisasi Akun saat Approval**: Ketika Admin menyetujui pendaftaran mitra (status berubah menjadi `terverifikasi`), Modul 3 menyinkronkan data akun mitra ke Modul 1 via endpoint internal untuk mengaktifkan akun dan menerima `user_id`.
+   - **Autentikasi JWT**: Mitra melakukan login di portal Modul 1 dan memperoleh token JWT bertanda tangan dengan klaim `{ user_id, email, role: "partner", partner_id }`. Modul 3 memverifikasi token ini melalui header `Authorization: Bearer <token>` pada endpoint privat.
+
+2. **Modul 2 (Master Unit Usaha & Dashboard Agregasi - Kontrak M2-Ref)**:
+   - **Inbound Dropdown Kategori**: Formulir pendaftaran mitra di Frontend/Backend Modul 3 memanggil endpoint Modul 2 (`GET /api/m2/v1/unit-usaha/`) untuk mempopulasikan pilihan kategori bisnis ke dropdown formulir secara dinamis. Nilai yang dipilih disimpan pada kolom `unit_usaha_id`.
+   - **Graceful Fallback**: Jika layanan Modul 2 sedang luring atau belum siap di lingkungan lokal, sistem Modul 3 menerapkan fallback aman ke kategori default (`Produk` dan `Jasa`) sehingga registrasi tidak terhenti.
+   - **Outbound Dashboard Agregasi**: Dashboard eksekutif Modul 2 memanggil Modul 3 (`GET /api/m3/v1/partners/?status=terverifikasi&unit_usaha_id={id}`) untuk menampilkan ringkasan jumlah dan sebaran mitra UMKM yang aktif.
+
+3. **Modul 4 (Penjualan & Produk - Kontrak K-06 / M4-Prereq)**:
+   - **Otorisasi Tambah Produk/Jasa**: Sebelum mitra diperbolehkan mengunggah katalog produk atau jasa di Modul 4, backend Modul 4 memanggil `GET /api/m3/v1/partners/{id}/` untuk memeriksa status legalitas partner.
+   - **Aturan Akses**: Hanya partner berstatus `terverifikasi` yang diberikan izin input produk/jasa. Mitra berstatus `pending`, `ditolak`, atau `ditangguhkan` otomatis ditolak oleh Modul 4.
+
+4. **Modul 5 (Katalog Publik & Website - Kontrak K-06)**:
+   - **Penyedia Etalase Resmi**: Modul 5 mengonsumsi data etalase toko mitra aktif melalui endpoint `GET /api/m3/v1/partners/?status=terverifikasi`.
+   - **Fitur Konsumsi**: Endpoint mendukung parameter pagination (`page`, `per_page`) serta filter pencarian nama atau lokasi (`q`) sehingga dapat memuat banyak mitra secara cepat dan efisien.
+
+---
+
+## 2. Diagram Alur Komunikasi Antarmodul (Sequence Flow)
+
+```
+Calon Mitra      Modul 2 (Master)    Modul 3 (Backend)    Admin (Review)     Modul 1 (Auth)     Modul 5 (Katalog)   Modul 4 (Sales)
+    |                    |                    |                 |                  |                   |                  |
+    |-- 1. Buka Form --->|                    |                 |                  |                   |                  |
+    |   Registrasi       |<- 2. GET Unit Usaha|                 |                  |                   |                  |
+    |                    |-- 3. Daftar Kategori                 |                  |                   |                  |
+    |-- 4. Submit Data & Berkas Foto -------->|                 |                  |                   |                  |
+    |   (KTP, Selfie, Password, NIK)          |-- 5. Validasi & Hashing            |                   |                  |
+    |                                         |-- 6. Generate PRT Code             |                   |                  |
+    |<- 7. 201 Created {partner_id: PRT-...}-|-- 8. Status: 'pending'              |                   |                  |
+    |                                         |                 |                  |                   |                  |
+    |-- 9. Pantau Status (GET PRT Code) ----->|                 |                  |                   |                  |
+    |<- 10. 200 OK {status: 'pending'} -------|                 |                  |                   |                  |
+    |                                         |                 |<-- 11. Review ---|                   |                  |
+    |                                         |                 |    KTP & Selfie  |                   |                  |
+    |                                         |<-- 12. Keputusan: 'terverifikasi' -|                   |                  |
+    |                                         |-- 13. Sync Akun Mitra ------------>|                   |                  |
+    |                                         |<- 14. 201 User Created (user_id)---|                   |                  |
+    |                                         |                                                        |                  |
+    |                                         |<- 15. GET /partners/?status=terverifikasi (K-06)-------|                  |
+    |                                         |-- 16. 200 OK { data: [mitra_terverifikasi] } ---------->|                  |
+    |                                         |                                                                           |
+    |                                         |<- 17. GET /partners/{id}/ (Cek Status Hak Jual Mitra)---------------------|
+    |                                         |-- 18. 200 OK { status: 'terverifikasi' } --------------------------------->|
+    |                                         |                                                       (Mitra boleh input  |
+    |                                         |                                                        produk di Modul 4) |
+```
+
+---
+
+## 3. Siklus Hidup Status Partner & Dampak Antarmodul
+
+| Status Partner | Hak Akses Modul 1 (Auth) | Hak Akses Modul 4 (Jual) | Tampilan Modul 5 (Katalog) | Logika Status & Tampilan Antarmuka |
+| :--- | :--- | :--- | :--- | :--- |
+| `pending` | Akun belum aktif | Dilarang input produk | Belum tampil di etalase | Menunggu verifikasi admin; tombol formulir pendaftaran terkunci. |
+| `terverifikasi` | Akun aktif, login diizinkan | Otorisasi dibuka penuh | Tampil otomatis di katalog | Mitra disetujui; tombol antarmuka mengarahkan ke login Modul 1. |
+| `ditolak` | Akun ditolak | Dilarang transaksi | Tidak tampil di katalog | Menampilkan alasan penolakan (`rejection_reason`) persisten (Task T11); tombol daftar ulang terbuka untuk perbaikan berkas. |
+| `ditangguhkan` | Sesi login dibekukan | Produk di-*freeze* | Toko disembunyikan | Akun dibekukan sementara karena pelanggaran; menampilkan kontak bantuan. |
+
+---
+
+## 4. Ringkasan Endpoint Utama Modul 3
+
+Seluruh endpoint beralamat dasar `/api/m3/v1/` dan mengembalikan respons beramplop standar (`success`, `status`, `message`, `data`, `error`):
+
+| Method | Endpoint | Hak Akses | Keterangan & Kontrak |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/m3/v1/partners/` | Publik | Pendaftaran mandiri calon partner (M3-US1). Menerima multipart unggahan foto KTP & selfie KTP, NIK tepat 16 digit, password minimal 8 karakter kombinasi, auto-generate kode publik `partner_id` (`PRT-YYYYMMDD-XXXX`), status awal `pending`. |
+| `GET` | `/api/m3/v1/partners/{id}/` | Publik / Partner / Admin | Detail & pelacakan status partner (M3-US3). Mendukung **Dual Lookup** via ID numerik maupun kode string `PRT-...`. Menampilkan field `rejection_reason` hanya jika status `ditolak` (Task T11). |
+| `GET` | `/api/m3/v1/partners/?status=terverifikasi` | Publik / Modul 5 / Modul 4 | Katalog partner terverifikasi (**Kontrak K-06**) dengan pagination (`page`, `per_page`) dan filter pencarian nama/kota (`q`). |
+| `GET` | `/api/m3/v1/docs/` | Semua Tim | Dokumentasi interaktif Swagger UI untuk pengujian API langsung via peramban web. |
+| `GET` | `/api/m3/v1/openapi.yaml` | Semua Tim | Spesifikasi kontrak OpenAPI 3.0.3 YAML standar mesin. |
+
+---
+
+## 5. Arsitektur Branch & Aturan Kerja Git
+
+- `main`: Branch rilis produksi.
+- `test`: Branch staging dan integrasi pengujian tim bersama.
+- `feature/<id-task>-<nama>`: Branch pengerjaan fitur individual.
 
 **Aturan Kerja Git:**
-1. Pengerjaan selalu di branch `feature/*`.
-2. Selesai pengerjaan, buat Pull Request ke branch `test`.
-3. Dilarang push langsung ke branch `main` atau `test`.
+1. Seluruh pengerjaan wajib dilakukan pada branch `feature/*`.
+2. Setelah pengerjaan selesai dan pengujian lulus, buat Pull Request (PR) ke branch `test`.
+3. Dilarang melakukan push langsung ke branch `main` atau `test`.
 
-## Quick Start
-1. Clone repositori:
+---
+
+## 6. Quick Start
+
+### 1. Klon Repositori:
 ```bash
 git clone git@github.com:AsfiCorp/PPL_A_KEL2_M3.git
 cd PPL_A_KEL2_M3
 ```
 
-2. Setup otomatis (membuat venv, instal dependensi, migrasi basis data, dan menjalankan automated test):
+### 2. Setup Otomatis:
+Menyiapkan virtual environment, menginstal dependensi, migrasi basis data, dan menjalankan pengujian otomatis:
 ```bash
 ./setup.sh
 ```
 
-3. Jalankan server lokal:
+### 3. Menjalankan Server Lokal:
 ```bash
 ./venv/bin/python manage.py runserver
 ```
 Server aktif di `http://127.0.0.1:8000/`.
 
-## Dokumentasi API & Kontrak Antarmodul
+---
 
-Sesuai standar Araya Business Hub, dokumentasi teknis API Modul 3 tidak diletakkan secara verbose di `README.md`, melainkan dikelola secara terpusat pada berkas spesifikasi resmi:
+## 7. Antarmuka Django (UI)
 
-1. **OpenAPI 3.0 Specification**:
-   - Berkas Skema: [`docs/openapi.yaml`](docs/openapi.yaml)
-   - Endpoint Skema: `http://127.0.0.1:8000/api/m3/v1/openapi.yaml`
-
-2. **Dokumentasi Interaktif (Swagger UI)**:
-   - Akses via browser: `http://127.0.0.1:8000/api/m3/v1/docs/`
-
-3. **Paket Resmi Dokumentasi API & Koleksi Postman**:
-   - Seluruh dokumen kontrak teknis dan koleksi pengujian resmi tersimpan di direktori **`flow/docs/`**:
-     - **01. Ringkasan Integrasi & Panduan Cepat (PDF)**: `flow/docs/01_Ringkasan_Integrasi_M3_README.pdf` (Cheat sheet orientasi cepat integrasi lintas modul, konfigurasi koneksi, ringkasan endpoint, dan aturan validasi).
-     - **02. Kontrak API & Event Resmi (PDF)**: `flow/docs/02_API_Contract_Modul_3.pdf` (Spesifikasi teknis lengkap mencakup konvensi, autentikasi JWT/Service-Key, parameter multipart dokumen KTP & selfie, validasi NIK 16 digit, password kuat, kode publik `PRT-YYYYMMDD-XXXX`, status mapping, dan katalog kode galat).
-     - **03. OpenAPI Specification (YAML)**: `flow/docs/03_openapi_modul3.yaml` (Kontrak mesin standar OpenAPI 3.0.3).
-     - **04. Matriks Event & Hubungan Antarmodul (PDF)**: `flow/docs/04_Matriks_Event_&_Hubungan_Antarmodul.pdf` (Rincian ketergantungan lintas modul K-06, K-01, M2-Ref, M4-Prereq, spesifikasi event pub/sub, matriks transisi status, diagram sequence end-to-end, dan checklist integrasi).
-     - **05. Postman Collection v2.1.0 (JSON)**: `flow/docs/05_Postman_Collection_M3.json` (Koleksi siap pakai untuk pengujian registrasi, dual lookup ID/PRT, validasi 422/409, dan katalog K-06).
-
-## Ringkasan Endpoint Utama Modul 3
-
-| Method | Endpoint | Keterangan & Kontrak |
-| :--- | :--- | :--- |
-| `POST` | `/api/m3/v1/partners/` | Registrasi mandiri calon partner (M3-US1, T4.2, T5.2). Mendukung multipart unggah Foto KTP & Selfie KTP, NIK 16 digit, password kuat, auto-generate `partner_id` (`PRT-YYYYMMDD-XXXX`), status awal `pending`. |
-| `GET` | `/api/m3/v1/partners/{id}/` | Detail & pelacakan status partner (M3-US3, T10, T11). Mendukung **Dual Lookup** via ID numerik maupun string `partner_id`. Menampilkan `rejection_reason` hanya jika status `ditolak`. |
-| `GET` | `/api/m3/v1/partners/?status=terverifikasi` | Katalog partner terverifikasi untuk konsumsi Modul 5 dan Modul 4 (**Kontrak K-06**) dengan pagination (`page`, `per_page`) dan pencarian (`q`). |
-| `GET` | `/api/m3/v1/docs/` | Antarmuka interaktif Swagger UI. |
-| `GET` | `/api/m3/v1/openapi.yaml` | Kontrak skema OpenAPI 3.0.3 YAML. |
-
-## Antarmuka Django (UI)
 - Beranda: `/`
 - Toko Saya: `/toko-saya/`
 - Formulir Pendaftaran Partner: `/pendaftaran-partner/`
 - Status Pengajuan Partner: `/pendaftaran-partner/status/`
 
-## Pengujian Otomatis (Automated Tests)
-Jalankan pengujian menggunakan script resmi:
+---
+
+## 8. Pengujian Otomatis (Automated Tests)
+
+Jalankan pengujian menggunakan skrip resmi:
 ```bash
 ./run_test.sh
 ```
@@ -80,4 +169,4 @@ Atau via Django runner:
 ```bash
 ./venv/bin/python manage.py test partners -v 2
 ```
-Seluruh 36 test suite (unit tests dan QA acceptance tests) berjalan otomatis dengan status lulus 100%.
+Seluruh 36 test suite (unit tests dan QA acceptance tests) berjalan otomatis dengan status kelulusan 100%.
