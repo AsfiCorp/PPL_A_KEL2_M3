@@ -1,0 +1,852 @@
+openapi: 3.0.3
+info:
+  title: API Modul M4 - Penjualan
+  description: |
+    Spesifikasi resmi API dan Event komunikasi antarmodul untuk Modul 4 (Penawaran & Tagihan Penjualan)
+    Araya Business Hub Platform. Mengacu penuh pada Panduan API Bersama v1.0 (draf 28 Okt 2026).
+  version: 1.0.0
+servers:
+  - url: https://[server-bersama]/api/m4/v1
+    description: Server Bersama Integrasi Antarmodul
+  - url: http://localhost:3000/api/m4/v1
+    description: Lingkungan Pengembangan Lokal
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT dari M1 (berlaku 8 jam)
+    serviceKey:
+      type: apiKey
+      in: header
+      name: X-Service-Key
+      description: Kunci modul untuk komunikasi antarmodul tanpa pengguna
+  schemas:
+    Error:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: ITEMS_EMPTY
+              description: Kode galat dalam format HURUF_BESAR_DENGAN_GARIS_BAWAH
+            message:
+              type: string
+              example: Keranjang masih kosong
+              description: Pesan galat dalam bahasa Indonesia sesuai Acceptance Criteria
+            fields:
+              type: object
+              nullable: true
+              additionalProperties:
+                type: string
+              example:
+                quantity: Jumlah kosong atau <= 0
+              description: Peta galat validasi per field (hanya ada pada kode status 422)
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - per_page
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 57
+        total_pages:
+          type: integer
+          example: 3
+    OrderCartItem:
+      type: object
+      required:
+        - product_id
+        - qty
+      properties:
+        product_id:
+          type: integer
+          example: 31
+          description: ID produk dari master Modul 4
+        qty:
+          type: integer
+          minimum: 1
+          example: 2
+    OrderCreateRequest:
+      type: object
+      required:
+        - customer_id
+        - source
+        - items
+      properties:
+        customer_id:
+          type: integer
+          example: 17
+          description: ID pelanggan dari master pelanggan Modul 4
+        source:
+          type: string
+          example: website
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderCartItem'
+    OrderResponseData:
+      type: object
+      required:
+        - id
+        - order_no
+        - status
+        - total_amount
+      properties:
+        id:
+          type: integer
+          example: 125
+        order_no:
+          type: string
+          example: ORD-20261028-0007
+        status:
+          type: string
+          example: baru
+        total_amount:
+          type: integer
+          example: 185000
+          description: Nominal uang dalam bilangan bulat rupiah tanpa titik dan desimal
+    OrderResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/OrderResponseData'
+    ProductItem:
+      type: object
+      required:
+        - id
+        - sku
+        - name
+        - price
+        - tax_rate
+        - is_active
+      properties:
+        id:
+          type: integer
+          example: 31
+        sku:
+          type: string
+          example: KAOS-UNPAS-M
+        name:
+          type: string
+          example: Kaos Unpas Size M
+        price:
+          type: integer
+          example: 75000
+          description: Harga pokok/jual dalam rupiah bulat
+        tax_rate:
+          type: integer
+          example: 11
+          description: Persentase PPN (0-100)
+        unit:
+          type: string
+          example: pcs
+        is_active:
+          type: boolean
+          example: true
+        partner_id:
+          type: integer
+          nullable: true
+          example: 1
+        unit_usaha_id:
+          type: integer
+          nullable: true
+          example: 3
+    ProductListResponse:
+      type: object
+      required:
+        - success
+        - data
+        - meta
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductItem'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    DashboardSummaryData:
+      type: object
+      required:
+        - total_sales
+        - total_orders
+        - total_invoices_paid
+        - total_invoices_pending
+      properties:
+        total_sales:
+          type: integer
+          example: 185000
+        total_orders:
+          type: integer
+          example: 1
+        total_invoices_paid:
+          type: integer
+          example: 1
+        total_invoices_pending:
+          type: integer
+          example: 0
+    DashboardSummaryResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/DashboardSummaryData'
+    QuotationItem:
+      type: object
+      required:
+        - product_id
+        - qty
+        - unit_price
+      properties:
+        product_id:
+          type: integer
+          example: 31
+        qty:
+          type: integer
+          example: 2
+        unit_price:
+          type: integer
+          example: 75000
+        discount:
+          type: integer
+          example: 0
+    QuotationCreateRequest:
+      type: object
+      required:
+        - customer_id
+        - items
+      properties:
+        customer_id:
+          type: integer
+          example: 17
+        notes:
+          type: string
+          nullable: true
+          example: Penawaran seragam BPU
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuotationItem'
+    QuotationData:
+      type: object
+      required:
+        - id
+        - quotation_no
+        - customer_id
+        - status
+        - total_amount
+      properties:
+        id:
+          type: integer
+          example: 12
+        quotation_no:
+          type: string
+          example: QUO-20261028-0001
+        customer_id:
+          type: integer
+          example: 17
+        status:
+          type: string
+          example: disetujui
+        total_amount:
+          type: integer
+          example: 185000
+    QuotationResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/QuotationData'
+    ConvertInvoiceData:
+      type: object
+      required:
+        - id
+        - invoice_no
+        - quotation_id
+        - status
+        - total_amount
+      properties:
+        id:
+          type: integer
+          example: 89
+        invoice_no:
+          type: string
+          example: INV-20261028-0001
+        quotation_id:
+          type: integer
+          example: 12
+        status:
+          type: string
+          example: belum_lunas
+        total_amount:
+          type: integer
+          example: 185000
+    ConvertInvoiceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ConvertInvoiceData'
+    PaymentData:
+      type: object
+      required:
+        - payment_id
+        - invoice_id
+        - provider
+        - amount
+        - status
+        - snap_token
+        - redirect_url
+      properties:
+        payment_id:
+          type: integer
+          example: 55
+        invoice_id:
+          type: integer
+          example: 89
+        provider:
+          type: string
+          example: midtrans
+        amount:
+          type: integer
+          example: 185000
+        status:
+          type: string
+          example: pending
+        snap_token:
+          type: string
+          example: 66e4fa55-fdac-4ef9-91b5-733b97d1b862
+        redirect_url:
+          type: string
+          example: https://app.sandbox.midtrans.com/snap/v4/redirection/66e4fa55
+    PaymentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/PaymentData'
+    EventPayload:
+      type: object
+      required:
+        - event_id
+        - event_type
+        - source_module
+        - occurred_at
+        - recipient_role
+        - payload
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          example: 6f1c2b9e-0d4a-4f7b-9a51-1e2c3d4f5a6b
+        event_type:
+          type: string
+          example: order.paid
+        source_module:
+          type: string
+          example: M4
+        occurred_at:
+          type: string
+          format: date-time
+          example: "2026-10-28T10:05:12+07:00"
+        recipient_role:
+          type: string
+          nullable: true
+          example: null
+        payload:
+          type: object
+          required:
+            - order_id
+            - order_no
+            - customer_id
+            - total_amount
+          properties:
+            order_id:
+              type: integer
+              example: 125
+            order_no:
+              type: string
+              example: ORD-20261028-0007
+            customer_id:
+              type: integer
+              example: 17
+            total_amount:
+              type: integer
+              example: 185000
+paths:
+  /orders:
+    post:
+      summary: Buat order dari keranjang (Kontrak K-04, M5-US4)
+      description: Menerima data pesanan checkout dari keranjang Modul 5 dan membuat Order resmi berstatus 'baru'.
+      operationId: createOrderFromCart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: Order berhasil terbentuk
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '401':
+          description: Customer belum login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  code: UNAUTHENTICATED
+                  message: Customer belum login
+                  fields: null
+        '409':
+          description: Ada produk yang sudah tidak aktif
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  code: PRODUCT_INACTIVE
+                  message: Ada produk yang sudah tidak aktif
+                  fields: null
+        '422':
+          description: Items kosong
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  code: ITEMS_EMPTY
+                  message: Keranjang masih kosong
+                  fields:
+                    items: Daftar item tidak boleh kosong
+  /orders/{id}/status:
+    patch:
+      summary: Memperbarui Status Pengerjaan Pesanan (M4-US4)
+      description: Memperbarui status siklus pengerjaan pesanan (baru, diproses, selesai, dibatalkan).
+      operationId: updateOrderStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 125
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [baru, diproses, selesai, dibatalkan]
+                  example: diproses
+      responses:
+        '200':
+          description: Status order berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /products:
+    get:
+      summary: Data produk/jasa aktif (Kontrak K-05, M4-US1, M5-US1, M6-US1)
+      description: Mengambil daftar katalog master produk/jasa aktif untuk ditampilkan di storefront M5 atau kasir M6.
+      operationId: getActiveProducts
+      security:
+        - bearerAuth: []
+        - serviceKey: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Kata kunci pencarian produk
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            example: aktif
+      responses:
+        '200':
+          description: Daftar produk berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+    post:
+      summary: Tambah produk/jasa baru (M4-US1)
+      operationId: createProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - name
+                - price
+              properties:
+                sku:
+                  type: string
+                  example: KAOS-UNPAS-L
+                name:
+                  type: string
+                  example: Kaos Unpas Size L
+                price:
+                  type: integer
+                  example: 75000
+                tax_rate:
+                  type: integer
+                  default: 11
+                unit:
+                  type: string
+                  default: pcs
+      responses:
+        '201':
+          description: Produk berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ProductItem'
+  /dashboard-summary:
+    get:
+      summary: Ringkasan untuk dashboard (Kontrak K-03, M2-US2, M2-US4)
+      description: Endpoint ringkasan penjualan seragam yang dipanggil oleh Modul 2 untuk agregasi dashboard pimpinan.
+      operationId: getDashboardSummary
+      security:
+        - bearerAuth: []
+        - serviceKey: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: 2026-10-01
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: 2026-10-31
+        - name: unit_usaha_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 3
+      responses:
+        '200':
+          description: Ringkasan metrik penjualan berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummaryResponse'
+  /quotations:
+    get:
+      summary: Daftar penawaran penjualan (M4-US2)
+      operationId: getQuotations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar penawaran berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuotationData'
+    post:
+      summary: Buat draf penawaran baru (M4-US2)
+      operationId: createQuotation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotationCreateRequest'
+      responses:
+        '201':
+          description: Penawaran berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotationResponse'
+  /quotations/{id}/convert:
+    post:
+      summary: Konversi penawaran ke tagihan invoice (M4-US2 / PRO-20)
+      description: Aksi perubahan status penawaran yang sudah 'disetujui' menjadi invoice 'belum_lunas'.
+      operationId: convertQuotationToInvoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 12
+      responses:
+        '201':
+          description: Invoice berhasil terbentuk dari penawaran
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertInvoiceResponse'
+        '400':
+          description: Penawaran belum disetujui sehingga tidak dapat dikonversi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  code: QUOTATION_NOT_ACCEPTED
+                  message: Penawaran belum disetujui dan tidak dapat dikonversi ke tagihan
+                  fields: null
+  /invoices/{invoice_id}/payments:
+    post:
+      summary: Mulai transaksi pembayaran invoice (Midtrans Sandbox Snap)
+      operationId: createInvoicePayment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 89
+      responses:
+        '201':
+          description: Snap token dan URL pembayaran berhasil diterbitkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+  /webhooks/payments/midtrans:
+    post:
+      summary: Webhook notifikasi status pembayaran Midtrans (Publik)
+      description: Endpoint publik tanpa bearer JWT. Diverifikasi dengan signature SHA-512.
+      operationId: handleMidtransWebhook
+      responses:
+        '200':
+          description: Notifikasi berhasil diproses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      received:
+                        type: boolean
+                        example: true
+  /customers:
+    get:
+      summary: Daftar pelanggan aktif (M4-US1)
+      operationId: getCustomers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar pelanggan berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 17
+                        name:
+                          type: string
+                          example: Budi Santoso
+                        email:
+                          type: string
+                          example: budi@example.com
+                        phone:
+                          type: string
+                          example: "+6281234567890"
+    post:
+      summary: Registrasi pelanggan baru (M4-US1)
+      operationId: createCustomer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: Budi Santoso
+                email:
+                  type: string
+                  example: budi@example.com
+                phone:
+                  type: string
+                  example: "+6281234567890"
+      responses:
+        '201':
+          description: Pelanggan berhasil terdaftar
+  /events:
+    post:
+      summary: Event bus antarmodul (Kontrak K-09, order.paid / order.cancelled)
+      description: Mengirimkan atau menerima notifikasi status pesanan lunas ke Modul 9 (Stok).
+      operationId: handleModuleEvent
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventPayload'
+      responses:
+        '200':
+          description: Event diterima dan diproses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      received:
+                        type: boolean
+                        example: true

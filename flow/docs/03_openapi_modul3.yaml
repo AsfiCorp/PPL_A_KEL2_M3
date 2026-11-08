@@ -1,0 +1,395 @@
+openapi: 3.0.3
+info:
+  title: API Modul M3 - Manajemen Partner
+  description: |
+    Spesifikasi resmi API dan Event komunikasi antarmodul untuk Modul 3 (Manajemen Partner & Pendaftaran Mitra)
+    Araya Business Hub Platform. Mengacu penuh pada Panduan API Bersama v1.0.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000/api/m3/v1
+    description: Server Lokal Pengujian
+  - url: https://[server-bersama]/api/m3/v1
+    description: Server Bersama Staging / Produksi
+tags:
+  - name: Pendaftaran Partner (M3-US1)
+    description: Registrasi calon partner mandiri dengan upload berkas dokumen identitas (KTP & Selfie).
+  - name: Status Pendaftaran (M3-US3)
+    description: Pelacakan status pendaftaran partner dan alasan penolakan (Dual Lookup ID & PRT).
+  - name: Katalog Partner Terverifikasi (K-06)
+    description: Penyediaan data partner terverifikasi untuk konsumsi Modul 5 (Katalog Publik) dan Modul 4.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT dari M1 (berlaku 8 jam)
+    serviceKey:
+      type: apiKey
+      in: header
+      name: X-Service-Key
+      description: Kunci modul untuk komunikasi antarmodul tanpa pengguna
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+              description: Kode galat dalam format HURUF_BESAR_DENGAN_GARIS_BAWAH
+            message:
+              type: string
+              example: Isian tidak lolos validasi. Periksa kelengkapan data.
+              description: Pesan galat dalam bahasa Indonesia sesuai Acceptance Criteria
+            fields:
+              type: object
+              nullable: true
+              additionalProperties:
+                type: string
+              example:
+                penanggung_jawab_nik: NIK penanggung jawab harus tepat 16 digit angka.
+              description: Pemetaan galat validasi per field (khusus status 422)
+
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - per_page
+        - total
+        - total_pages
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 5
+        total_pages:
+          type: integer
+          example: 1
+
+    PartnerData:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        partner_id:
+          type: string
+          example: PRT-20261108-A9F2
+          description: Kode unik referensi pendaftaran partner untuk pelacakan publik (PRT-YYYYMMDD-XXXX).
+        user_id:
+          type: integer
+          nullable: true
+          example: 42
+        unit_usaha_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: Referensi ID Master Unit Usaha dari Modul 2
+        nama_usaha:
+          type: string
+          example: Toko Berkah Sejahtera
+        kategori_usaha:
+          type: string
+          enum: [Produk, Jasa]
+          example: Produk
+        deskripsi_usaha:
+          type: string
+          example: Menjual kebutuhan pokok dan sembako berkualitas.
+        alamat_usaha:
+          type: string
+          example: Jl. Gatot Subroto No. 45, Bandung
+        nomor_telepon_usaha:
+          type: string
+          example: "081234567890"
+        email_usaha:
+          type: string
+          format: email
+          example: toko.berkah@example.com
+        profil_usaha:
+          type: string
+          nullable: true
+          example: /media/partner_profiles/profil.png
+        penanggung_jawab_nama:
+          type: string
+          nullable: true
+          example: Budi Santoso
+        penanggung_jawab_nik:
+          type: string
+          pattern: '^[0-9]{16}$'
+          minLength: 16
+          maxLength: 16
+          nullable: true
+          example: "3201234567890001"
+          description: NIK penanggung jawab wajib tepat 16 digit angka (T5.2).
+        tempat_lahir:
+          type: string
+          nullable: true
+          example: Bandung
+        tanggal_lahir:
+          type: string
+          format: date
+          nullable: true
+          example: "1990-05-15"
+        foto_ktp:
+          type: string
+          nullable: true
+          example: /media/partner_documents/ktp/ktp.png
+          description: URL berkas foto KTP (JPG/PNG maks 5MB).
+        foto_memegang_ktp:
+          type: string
+          nullable: true
+          example: /media/partner_documents/selfie/selfie_ktp.png
+          description: URL berkas selfie memegang KTP (JPG/PNG maks 5MB).
+        status:
+          type: string
+          enum: [pending, terverifikasi, ditolak, ditangguhkan]
+          example: pending
+        alasan_penolakan:
+          type: string
+          nullable: true
+          example: null
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Alasan penolakan dari admin bila status bernilai 'ditolak' (M3-US3 AC 2 / Task T11).
+          example: null
+        alasan_penangguhan:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-11-08T09:15:00+07:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-11-08T09:15:00+07:00"
+
+    PartnerSingleResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Pendaftaran partner berhasil dikirim dan menunggu verifikasi.
+        data:
+          $ref: '#/components/schemas/PartnerData'
+
+    PartnerListResponse:
+      type: object
+      required:
+        - success
+        - data
+        - meta
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerData'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PartnerRegisterRequest:
+      type: object
+      required:
+        - nama_usaha
+        - kategori_usaha
+        - deskripsi_usaha
+        - alamat_usaha
+        - nomor_telepon_usaha
+        - email_usaha
+      properties:
+        nama_usaha:
+          type: string
+          example: Toko Berkah Sejahtera
+        kategori_usaha:
+          type: string
+          enum: [Produk, Jasa]
+          example: Produk
+        unit_usaha_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: ID Master Unit Usaha dari Modul 2.
+        deskripsi_usaha:
+          type: string
+          example: Menjual kebutuhan pokok dan sembako berkualitas.
+        alamat_usaha:
+          type: string
+          example: Jl. Gatot Subroto No. 45, Bandung
+        nomor_telepon_usaha:
+          type: string
+          example: "081234567890"
+        email_usaha:
+          type: string
+          format: email
+          example: toko.berkah@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "PasswordKuat2026"
+          description: Password akun partner untuk login ke Modul 1. Minimal 8 karakter kombinasi huruf dan angka (write-only).
+        profil_usaha:
+          type: string
+          format: binary
+          description: Berkas gambar profil (PNG/JPG, ukuran maksimal 5 MB) opsional.
+        penanggung_jawab_nama:
+          type: string
+          example: Budi Santoso
+        penanggung_jawab_nik:
+          type: string
+          pattern: '^[0-9]{16}$'
+          minLength: 16
+          maxLength: 16
+          example: "3201234567890001"
+          description: NIK penanggung jawab wajib tepat 16 digit angka (T5.2).
+        tempat_lahir:
+          type: string
+          example: Bandung
+        tanggal_lahir:
+          type: string
+          format: date
+          example: "1990-05-15"
+        foto_ktp:
+          type: string
+          format: binary
+          description: Berkas foto KTP penanggung jawab (format JPG/PNG, ukuran maksimal 5 MB).
+        foto_memegang_ktp:
+          type: string
+          format: binary
+          description: Berkas foto selfie penanggung jawab memegang KTP (format JPG/PNG, ukuran maksimal 5 MB).
+
+paths:
+  /partners:
+    post:
+      tags:
+        - Pendaftaran Partner (M3-US1)
+      summary: Pendaftaran Calon Partner Baru (M3-US1, T4.2, T5.2)
+      description: Endpoint publik untuk registrasi mandiri calon partner. Menerima multipart dokumen, NIK 16 digit, kredensial password, dan menghasilkan kode referensi unik `partner_id` (PRT-YYYYMMDD-XXXX). Status awal otomatis `pending`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PartnerRegisterRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerRegisterRequest'
+      responses:
+        '201':
+          description: Data pendaftaran partner berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSingleResponse'
+        '409':
+          description: Email usaha sudah terdaftar (EMAIL_DUPLICATE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Isian tidak lolos validasi NIK / Berkas Foto / Password / Data wajib kosong (VALIDATION_ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Katalog Partner Terverifikasi (K-06)
+      summary: Daftar Partner Terverifikasi (Kontrak K-06, M3-US2, M3-US4)
+      description: Dipergunakan oleh M5 (Katalog Publik) dan M4 untuk mengambil partner yang berstatus terverifikasi.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            example: terverifikasi
+          description: Filter status partner (default terverifikasi untuk katalog).
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Kata kunci pencarian nama usaha.
+      responses:
+        '200':
+          description: Berhasil mengambil daftar partner terverifikasi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerListResponse'
+
+  /partners/{id}:
+    get:
+      tags:
+        - Status Pendaftaran (M3-US3)
+      summary: Detail dan Status Terkini Pendaftaran Partner (M3-US3, T10, T11)
+      description: Menampilkan status pendaftaran terkini beserta alasan penolakan (rejection_reason) bila status bernilai 'ditolak'. Mendukung pencarian via ID numerik internal (mis. 1) maupun string unik partner_id (mis. PRT-20261108-A9F2).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PRT-20261108-A9F2
+          description: ID numerik partner atau kode unik partner_id (PRT-...).
+      responses:
+        '200':
+          description: Berhasil mengambil detail partner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSingleResponse'
+        '404':
+          description: Data partner tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
