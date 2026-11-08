@@ -3,6 +3,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.hashers import make_password
 from .models import Partner
+from .validators import validate_nik, validate_image_document, validate_strong_password
 
 
 class PartnerRegistrationSerializer(serializers.ModelSerializer):
@@ -52,6 +53,32 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             'blank': 'Email usaha wajib diisi.',
             'required': 'Email usaha wajib diisi.',
             'invalid': 'Format email tidak valid.',
+        }
+    )
+    penanggung_jawab_nik = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
+    foto_ktp = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        error_messages={
+            'invalid_image': 'Format berkas foto KTP harus berupa gambar JPG atau PNG.',
+        }
+    )
+    foto_memegang_ktp = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        error_messages={
+            'invalid_image': 'Format berkas foto selfie KTP harus berupa gambar JPG atau PNG.',
+        }
+    )
+    profil_usaha = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        error_messages={
+            'invalid_image': 'Format berkas profil usaha harus berupa gambar JPG atau PNG.',
         }
     )
     rejection_reason = serializers.CharField(
@@ -128,6 +155,31 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Email sudah terdaftar.')
 
         return normalized_email
+
+    def validate_penanggung_jawab_nik(self, value):
+        if value is None or str(value).strip() == '':
+            return value
+        return validate_nik(value)
+
+    def validate_foto_ktp(self, value):
+        if not value:
+            return value
+        return validate_image_document(value, field_label="foto KTP", max_size_mb=5)
+
+    def validate_foto_memegang_ktp(self, value):
+        if not value:
+            return value
+        return validate_image_document(value, field_label="foto selfie KTP", max_size_mb=5)
+
+    def validate_profil_usaha(self, value):
+        if not value:
+            return value
+        return validate_image_document(value, field_label="profil usaha", max_size_mb=5)
+
+    def validate_password(self, value):
+        if value is None or str(value).strip() == '':
+            return value
+        return validate_strong_password(value)
 
     def create(self, validated_data):
         validated_data['status'] = Partner.StatusPendaftaran.PENDING

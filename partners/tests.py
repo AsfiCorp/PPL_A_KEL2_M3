@@ -392,3 +392,212 @@ class PartnerRegistrationTask4_2TestCase(APITestCase):
         self.assertTrue(response.data['success'])
         self.assertEqual(response.data['data']['partner_id'], partner.partner_id)
         self.assertEqual(response.data['data']['nama_usaha'], "Toko String Lookup")
+
+
+class PartnerValidationTask5_2TestCase(APITestCase):
+    """
+    Rangkaian pengujian Task T5.2:
+    Validasi Backend untuk NIK 16 Digit, Format Berkas Foto Dokumen (JPG/PNG maks 5MB),
+    dan Password Kuat (minimal 8 karakter kombinasi huruf & angka).
+    """
+
+    def setUp(self):
+        self.v1_url = reverse('partners_api:partner-list-create')
+        self.base_payload = {
+            "nama_usaha": "Usaha Uji Validasi",
+            "kategori_usaha": "Produk",
+            "deskripsi_usaha": "Deskripsi pengujian validasi backend.",
+            "alamat_usaha": "Jl. Setiabudi No. 100, Bandung",
+            "nomor_telepon_usaha": "081234567890",
+            "email_usaha": "validasi.t52@example.com",
+            "penanggung_jawab_nama": "Moch Hary",
+        }
+
+    def _generate_dummy_image(self, name='test.png'):
+        file = io.BytesIO()
+        image = Image.new('RGB', (50, 50), color='green')
+        image.save(file, 'PNG')
+        file.seek(0)
+        return SimpleUploadedFile(name, file.read(), content_type='image/png')
+
+    def _generate_oversized_image(self, name='large.png'):
+        import os
+        img = Image.frombytes('RGB', (1400, 1400), os.urandom(1400 * 1400 * 3))
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return SimpleUploadedFile(name, buf.read(), content_type='image/png')
+
+    def test_nik_under_16_digits_rejected(self):
+        """NIK kurang dari 16 digit harus ditolak dengan error 422 VALIDATION_ERROR."""
+        payload = self.base_payload.copy()
+        payload["penanggung_jawab_nik"] = "123456789012345"  # 15 digit
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('penanggung_jawab_nik', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['penanggung_jawab_nik'],
+            "NIK penanggung jawab harus tepat 16 digit angka."
+        )
+
+    def test_nik_over_16_digits_rejected(self):
+        """NIK lebih dari 16 digit harus ditolak dengan error 422 VALIDATION_ERROR."""
+        payload = self.base_payload.copy()
+        payload["penanggung_jawab_nik"] = "12345678901234567"  # 17 digit
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('penanggung_jawab_nik', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['penanggung_jawab_nik'],
+            "NIK penanggung jawab harus tepat 16 digit angka."
+        )
+
+    def test_nik_with_alphabet_rejected(self):
+        """NIK berisi karakter huruf harus ditolak dengan error 422 VALIDATION_ERROR."""
+        payload = self.base_payload.copy()
+        payload["penanggung_jawab_nik"] = "320123456789000A"  # 16 karakter namun ada huruf
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('penanggung_jawab_nik', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['penanggung_jawab_nik'],
+            "NIK penanggung jawab harus tepat 16 digit angka."
+        )
+
+    def test_nik_valid_16_digits_accepted(self):
+        """NIK tepat 16 digit angka harus diterima (201 Created)."""
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "nik.valid@example.com"
+        payload["penanggung_jawab_nik"] = "3201234567890001"
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['penanggung_jawab_nik'], "3201234567890001")
+
+    def test_foto_ktp_invalid_format_rejected(self):
+        """Berkas foto KTP berupa dokumen teks/non-gambar harus ditolak dengan error 422."""
+        txt_file = SimpleUploadedFile("ktp.txt", b"Bukan gambar KTP", content_type="text/plain")
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "ktp.invalid@example.com"
+        payload["foto_ktp"] = txt_file
+
+        response = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('foto_ktp', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['foto_ktp'],
+            "Format berkas foto KTP harus berupa gambar JPG atau PNG."
+        )
+
+    def test_foto_ktp_size_exceeds_5mb_rejected(self):
+        """Berkas foto KTP dengan ukuran melebihi 5 MB harus ditolak dengan error 422."""
+        img_file = self._generate_oversized_image("ktp_large.png")
+
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "ktp.large@example.com"
+        payload["foto_ktp"] = img_file
+
+        response = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['error']['code'], 'VALIDATION_ERROR')
+        self.assertIn('foto_ktp', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['foto_ktp'],
+            "Ukuran berkas foto KTP maksimal 5 MB."
+        )
+
+    def test_foto_memegang_ktp_invalid_format_and_oversized_rejected(self):
+        """Berkas foto memegang KTP non-gambar dan melebihi 5MB harus ditolak dengan error 422."""
+        # Test format bukan gambar
+        txt_file = SimpleUploadedFile("selfie.pdf", b"%PDF-1.4...", content_type="application/pdf")
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "selfie.invalid@example.com"
+        payload["foto_memegang_ktp"] = txt_file
+
+        response = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn('foto_memegang_ktp', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['foto_memegang_ktp'],
+            "Format berkas foto selfie KTP harus berupa gambar JPG atau PNG."
+        )
+
+        # Test ukuran melebihi 5MB
+        oversized = self._generate_oversized_image("selfie_large.png")
+        payload2 = self.base_payload.copy()
+        payload2["email_usaha"] = "selfie.large@example.com"
+        payload2["foto_memegang_ktp"] = oversized
+
+        response2 = self.client.post(self.v1_url, data=payload2, format='multipart')
+        self.assertEqual(response2.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn('foto_memegang_ktp', response2.data['error']['fields'])
+        self.assertEqual(
+            response2.data['error']['fields']['foto_memegang_ktp'],
+            "Ukuran berkas foto selfie KTP maksimal 5 MB."
+        )
+
+    def test_password_less_than_8_chars_rejected(self):
+        """Password kurang dari 8 karakter harus ditolak dengan error 422."""
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "pass.short@example.com"
+        payload["password"] = "Pass1"  # 5 karakter
+
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn('password', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['password'],
+            "Password minimal 8 karakter dan mengandung kombinasi huruf serta angka."
+        )
+
+    def test_password_only_letters_rejected(self):
+        """Password hanya huruf tanpa angka harus ditolak dengan error 422."""
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "pass.letters@example.com"
+        payload["password"] = "HanyaHurufSaja"
+
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn('password', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['password'],
+            "Password minimal 8 karakter dan mengandung kombinasi huruf serta angka."
+        )
+
+    def test_password_only_numbers_rejected(self):
+        """Password hanya angka tanpa huruf harus ditolak dengan error 422."""
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "pass.numbers@example.com"
+        payload["password"] = "1234567890"
+
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertIn('password', response.data['error']['fields'])
+        self.assertEqual(
+            response.data['error']['fields']['password'],
+            "Password minimal 8 karakter dan mengandung kombinasi huruf serta angka."
+        )
+
+    def test_password_strong_accepted(self):
+        """Password kuat kombinasi huruf dan angka >= 8 karakter harus diterima."""
+        from django.contrib.auth.hashers import check_password
+
+        payload = self.base_payload.copy()
+        payload["email_usaha"] = "pass.strong@example.com"
+        payload["password"] = "ArayaPartner2026"
+
+        response = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['success'])
+        partner = Partner.objects.get(email_usaha="pass.strong@example.com")
+        self.assertTrue(check_password("ArayaPartner2026", partner.password_hash))
+
