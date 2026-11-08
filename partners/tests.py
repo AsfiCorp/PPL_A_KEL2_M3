@@ -306,3 +306,89 @@ class PartnerRegistrationUITestCase(TestCase):
         self.assertContains(response, 'Pendaftaran ditolak')
         self.assertContains(response, 'Alasan penolakan')
         self.assertContains(response, 'Dokumen legalitas tidak lengkap.')
+
+
+class PartnerRegistrationTask4_2TestCase(APITestCase):
+    def setUp(self):
+        self.v1_url = reverse('partners_api:partner-list-create')
+
+    def _generate_dummy_image(self, name='test.png'):
+        file = io.BytesIO()
+        image = Image.new('RGB', (100, 100), color='blue')
+        image.save(file, 'PNG')
+        file.seek(0)
+        return SimpleUploadedFile(name, file.read(), content_type='image/png')
+
+    def test_post_partner_with_documents_multipart_success(self):
+        """
+        Task T4.2: Menguji pendaftaran partner multipart dengan Foto KTP,
+        Foto Memegang KTP, data NIK, password akun, dan verifikasi kode PRT.
+        """
+        from django.contrib.auth.hashers import check_password
+
+        ktp_image = self._generate_dummy_image('ktp.png')
+        selfie_image = self._generate_dummy_image('selfie_ktp.png')
+
+        payload = {
+            "nama_usaha": "Toko Berkah Mandiri",
+            "kategori_usaha": "Produk",
+            "deskripsi_usaha": "Penyedia sembako dan retail.",
+            "alamat_usaha": "Jl. Asia Afrika No. 10, Bandung",
+            "nomor_telepon_usaha": "081122334455",
+            "email_usaha": "berkah.mandiri@example.com",
+            "penanggung_jawab_nama": "Budi Santoso",
+            "penanggung_jawab_nik": "3201234567890001",
+            "tempat_lahir": "Bandung",
+            "tanggal_lahir": "1990-05-15",
+            "unit_usaha_id": 1,
+            "password": "PasswordAman123!",
+            "foto_ktp": ktp_image,
+            "foto_memegang_ktp": selfie_image,
+        }
+
+        response = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['success'])
+
+        data = response.data['data']
+        self.assertIn('partner_id', data)
+        self.assertTrue(data['partner_id'].startswith('PRT-'))
+        self.assertEqual(data['status'], 'pending')
+        self.assertEqual(data['penanggung_jawab_nama'], "Budi Santoso")
+        self.assertEqual(data['penanggung_jawab_nik'], "3201234567890001")
+        self.assertIn('partner_documents/ktp/', data['foto_ktp'])
+        self.assertIn('partner_documents/selfie/', data['foto_memegang_ktp'])
+
+        # Pastikan password dan password_hash tidak bocor pada response JSON
+        self.assertNotIn('password', data)
+        self.assertNotIn('password_hash', data)
+
+        # Verifikasi di database
+        partner = Partner.objects.get(email_usaha="berkah.mandiri@example.com")
+        self.assertEqual(partner.partner_id, data['partner_id'])
+        self.assertTrue(partner.partner_id.startswith('PRT-'))
+        self.assertEqual(partner.status, Partner.StatusPendaftaran.PENDING)
+        self.assertTrue(check_password("PasswordAman123!", partner.password_hash))
+
+    def test_lookup_status_by_partner_id_string(self):
+        """
+        Task T4.2: Memastikan endpoint GET detail mendukung pencarian melalui
+        kode unik string partner_id (PRT-...).
+        """
+        partner = Partner.objects.create(
+            nama_usaha="Toko String Lookup",
+            kategori_usaha="Jasa",
+            deskripsi_usaha="Layanan perbaikan.",
+            alamat_usaha="Jl. Riau No. 12",
+            nomor_telepon_usaha="089988776655",
+            email_usaha="lookup@example.com",
+            status=Partner.StatusPendaftaran.PENDING
+        )
+        self.assertTrue(partner.partner_id.startswith('PRT-'))
+
+        url = reverse('partners_api:partner-detail-by-partner-id', kwargs={'identifier': partner.partner_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['partner_id'], partner.partner_id)
+        self.assertEqual(response.data['data']['nama_usaha'], "Toko String Lookup")

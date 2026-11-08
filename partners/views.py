@@ -222,12 +222,18 @@ class PartnerListCreateView(APIView):
 class PartnerDetailView(APIView):
     """
     Endpoint Modul 3:
-    GET /api/m3/v1/partners/{id} -> Detail dan status pendaftaran partner (M3-US3).
+    GET /api/m3/v1/partners/{id} atau {partner_id} -> Detail dan status pendaftaran partner (M3-US3).
     """
-    def get(self, request, pk, *args, **kwargs):
-        try:
-            partner = Partner.objects.get(pk=pk)
-        except Partner.DoesNotExist:
+    def get(self, request, pk=None, identifier=None, *args, **kwargs):
+        val = pk if pk is not None else identifier
+        partner = None
+        if val is not None:
+            if str(val).isdigit():
+                partner = Partner.objects.filter(pk=int(val)).first()
+            if not partner:
+                partner = Partner.objects.filter(partner_id__iexact=str(val)).first()
+
+        if not partner:
             return Response(
                 {
                     "success": False,
@@ -240,7 +246,7 @@ class PartnerDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = PartnerRegistrationSerializer(partner)
+        serializer = PartnerRegistrationSerializer(partner, context={'request': request})
         return Response(
             {
                 "success": True,

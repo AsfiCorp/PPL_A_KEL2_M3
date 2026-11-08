@@ -52,10 +52,19 @@ components:
         id:
           type: integer
           example: 1
+        partner_id:
+          type: string
+          example: PRT-20261108-A9F2
+          description: Kode unik referensi pendaftaran partner untuk pelacakan publik
         user_id:
           type: integer
           nullable: true
           example: 42
+        unit_usaha_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: Referensi ID Master Unit Usaha dari Modul 2
         nama_usaha:
           type: string
           example: Toko Berkah Sejahtera
@@ -80,6 +89,31 @@ components:
           type: string
           nullable: true
           example: /media/partner_profiles/profil.png
+        penanggung_jawab_nama:
+          type: string
+          nullable: true
+          example: Budi Santoso
+        penanggung_jawab_nik:
+          type: string
+          nullable: true
+          example: "3201234567890001"
+        tempat_lahir:
+          type: string
+          nullable: true
+          example: Bandung
+        tanggal_lahir:
+          type: string
+          format: date
+          nullable: true
+          example: "1990-05-15"
+        foto_ktp:
+          type: string
+          nullable: true
+          example: /media/partner_documents/ktp/ktp.png
+        foto_memegang_ktp:
+          type: string
+          nullable: true
+          example: /media/partner_documents/selfie/selfie_ktp.png
         status:
           type: string
           enum: [pending, terverifikasi, ditolak, ditangguhkan]
@@ -161,6 +195,11 @@ components:
           type: string
           enum: [Produk, Jasa]
           example: Produk
+        unit_usaha_id:
+          type: integer
+          nullable: true
+          example: 1
+          description: ID Master Unit Usaha dari Modul 2.
         deskripsi_usaha:
           type: string
           example: Menjual kebutuhan pokok dan sembako berkualitas.
@@ -174,10 +213,37 @@ components:
           type: string
           format: email
           example: toko.berkah@example.com
+        password:
+          type: string
+          format: password
+          example: "PasswordAman123!"
+          description: Password akun partner untuk login ke Modul 1.
         profil_usaha:
           type: string
           format: binary
           description: Berkas gambar profil (PNG/JPG) opsional.
+        penanggung_jawab_nama:
+          type: string
+          example: Budi Santoso
+        penanggung_jawab_nik:
+          type: string
+          example: "3201234567890001"
+          description: NIK 16 digit penanggung jawab.
+        tempat_lahir:
+          type: string
+          example: Bandung
+        tanggal_lahir:
+          type: string
+          format: date
+          example: "1990-05-15"
+        foto_ktp:
+          type: string
+          format: binary
+          description: Berkas foto KTP penanggung jawab.
+        foto_memegang_ktp:
+          type: string
+          format: binary
+          description: Berkas foto selfie penanggung jawab memegang KTP.
 
 paths:
   /partners:
@@ -253,14 +319,15 @@ paths:
   /partners/{id}:
     get:
       summary: Detail dan Status Terkini Pendaftaran Partner (M3-US3)
-      description: Menampilkan status pendaftaran terkini beserta alasan penolakan bila ditolak.
+      description: Menampilkan status pendaftaran terkini beserta alasan penolakan bila ditolak. Mendukung pencarian via ID numerik maupun kode string partner_id (PRT-...).
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
-          description: ID unik partner
+            type: string
+            example: PRT-20261108-A9F2
+          description: ID numerik partner atau kode unik partner_id (PRT-...).
       responses:
         '200':
           description: Berhasil mengambil detail partner
