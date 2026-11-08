@@ -47,11 +47,13 @@ Sesuai standar Araya Business Hub, dokumentasi teknis API Modul 3 tidak diletakk
 2. **Dokumentasi Interaktif (Swagger UI)**:
    - Akses via browser: `http://127.0.0.1:8000/api/m3/v1/docs/`
 
-3. **Paket Resmi Kontrak API & Koleksi Postman**:
+3. **Paket Resmi Dokumentasi API & Koleksi Postman**:
    - Seluruh dokumen kontrak teknis dan koleksi pengujian resmi tersimpan di direktori **`flow/docs/`**:
-     - **PDF Kontrak API Resmi**: `flow/docs/02_API_Contract_Modul_3.pdf` (Spesifikasi lengkap 9 halaman mencakup konvensi, autentikasi, parameter multipart dokumen KTP/selfie, validasi NIK 16 digit, password kuat, kode publik `PRT-YYYYMMDD-XXXX`, status mapping, dan alur komunikasi).
-     - **Postman Collection v2.1.0**: `flow/docs/05_Postman_Collection_M3.json` (Koleksi siap pakai untuk pengujian registrasi, dual lookup ID/PRT, error 409/422, dan katalog K-06).
-     - **OpenAPI Mirror**: `flow/docs/03_openapi_modul3.yaml`
+     - **01. Ringkasan Integrasi & Panduan Cepat (PDF)**: `flow/docs/01_Ringkasan_Integrasi_M3_README.pdf` (Cheat sheet orientasi cepat integrasi lintas modul, konfigurasi koneksi, ringkasan endpoint, dan aturan validasi).
+     - **02. Kontrak API & Event Resmi (PDF)**: `flow/docs/02_API_Contract_Modul_3.pdf` (Spesifikasi teknis lengkap mencakup konvensi, autentikasi JWT/Service-Key, parameter multipart dokumen KTP & selfie, validasi NIK 16 digit, password kuat, kode publik `PRT-YYYYMMDD-XXXX`, status mapping, dan katalog kode galat).
+     - **03. OpenAPI Specification (YAML)**: `flow/docs/03_openapi_modul3.yaml` (Kontrak mesin standar OpenAPI 3.0.3).
+     - **04. Matriks Event & Hubungan Antarmodul (PDF)**: `flow/docs/04_Matriks_Event_&_Hubungan_Antarmodul.pdf` (Rincian ketergantungan lintas modul K-06, K-01, M2-Ref, M4-Prereq, spesifikasi event pub/sub, matriks transisi status, diagram sequence end-to-end, dan checklist integrasi).
+     - **05. Postman Collection v2.1.0 (JSON)**: `flow/docs/05_Postman_Collection_M3.json` (Koleksi siap pakai untuk pengujian registrasi, dual lookup ID/PRT, validasi 422/409, dan katalog K-06).
 
 ## Ringkasan Endpoint Utama Modul 3
 
