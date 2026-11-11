@@ -96,3 +96,135 @@ class TestM3US1AcceptanceCriteria(APITestCase):
         # Pada endpoint legacy register, GET adalah Method Not Allowed
         res = self.client.put(self.url)
         self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class TestM3US1EnhancedQA(APITestCase):
+    """
+    Test suite resmi QA untuk issue PRO-226 (Task T7.1):
+    Automated Testing Registrasi: Foto KTP, Selfie Pegang KTP & Akun Aplikasi,
+    Validasi NIK 16 digit, format foto dokumen, password kuat, dan auto partner_id.
+    """
+
+    def setUp(self):
+        self.url = reverse('partners:partner-register')
+        self.v1_url = reverse('partners_api:partner-list-create')
+
+    def _generate_valid_image(self, filename="document.jpg", format_type="JPEG"):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        file_obj = io.BytesIO()
+        image = Image.new("RGB", (100, 100), color=(73, 109, 137))
+        image.save(file_obj, format=format_type)
+        file_obj.seek(0)
+        return SimpleUploadedFile(
+            name=filename,
+            content=file_obj.read(),
+            content_type=f"image/{format_type.lower()}"
+        )
+
+    def test_t7_1_registrasi_multipart_dokumen_dan_akun_berhasil(self):
+        from django.contrib.auth.hashers import check_password
+
+        ktp_file = self._generate_valid_image("ktp_qa.png", "PNG")
+        selfie_file = self._generate_valid_image("selfie_qa.jpg", "JPEG")
+
+        payload = {
+            "nama_usaha": "CV Berkah Maju QA",
+            "kategori_usaha": "Jasa",
+            "deskripsi_usaha": "Jasa konsultasi IT dan digitalisasi UMKM",
+            "alamat_usaha": "Jl. Ir. H. Juanda No. 99, Dago, Bandung",
+            "nomor_telepon_usaha": "081298765432",
+            "email_usaha": "berkah.qa@example.com",
+            "penanggung_jawab_nama": "Budi Santoso QA",
+            "penanggung_jawab_nik": "3273012304900001",
+            "tempat_lahir": "Bandung",
+            "tanggal_lahir": "1990-04-23",
+            "password": "PasswordKuat2026",
+            "foto_ktp": ktp_file,
+            "foto_memegang_ktp": selfie_file,
+        }
+
+        res = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res.data.get('success'))
+        self.assertEqual(res.data['data']['status'], 'pending')
+        
+        partner_id = res.data['data'].get('partner_id')
+        self.assertTrue(partner_id and partner_id.startswith('PRT-'), f"Format partner_id salah: {partner_id}")
+
+        self.assertNotIn('password', res.data['data'])
+
+    def test_t7_1_validasi_nik_invalid_ditolak(self):
+        payload = {
+            "nama_usaha": "Warung NIK Test",
+            "kategori_usaha": "Produk",
+            "deskripsi_usaha": "Warung kelontong",
+            "alamat_usaha": "Jl. Asia Afrika",
+            "nomor_telepon_usaha": "081234567811",
+            "email_usaha": "nik.invalid@example.com",
+            "penanggung_jawab_nik": "12345",
+        }
+        res = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertFalse(res.data.get('success'))
+        fields_error = res.data.get('error', {}).get('fields', {})
+        self.assertIn('penanggung_jawab_nik', fields_error)
+
+    def test_t7_1_validasi_format_foto_dokumen_bukan_gambar_ditolak(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        fake_doc = SimpleUploadedFile("ktp.txt", b"ini teks bukan foto", content_type="text/plain")
+        payload = {
+            "nama_usaha": "Bengkel Mobil QA",
+            "kategori_usaha": "Jasa",
+            "deskripsi_usaha": "Bengkel perbaikan mesin",
+            "alamat_usaha": "Jl. Soekarno Hatta",
+            "nomor_telepon_usaha": "081234567822",
+            "email_usaha": "bengkel.qa@example.com",
+            "foto_ktp": fake_doc,
+        }
+        res = self.client.post(self.v1_url, data=payload, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        fields_error = res.data.get('error', {}).get('fields', {})
+        self.assertIn('foto_ktp', fields_error)
+
+    def test_t7_1_validasi_password_lemah_ditolak(self):
+        payload = {
+            "nama_usaha": "Toko Buku QA",
+            "kategori_usaha": "Produk",
+            "deskripsi_usaha": "Penjualan buku pelajaran",
+            "alamat_usaha": "Jl. Braga",
+            "nomor_telepon_usaha": "081234567833",
+            "email_usaha": "tokobuku.qa@example.com",
+            "password": "pass1",
+        }
+        res = self.client.post(self.v1_url, data=payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        fields_error = res.data.get('error', {}).get('fields', {})
+        self.assertIn('password', fields_error)
+
+    def test_t7_1_rejection_reason_protection(self):
+        p = Partner.objects.create(
+            nama_usaha="Toko Reject Test",
+            kategori_usaha=Partner.KategoriUsaha.PRODUK,
+            deskripsi_usaha="Testing rejection logic",
+            alamat_usaha="Jl. Riau No. 1",
+            nomor_telepon_usaha="081234567844",
+            email_usaha="reject.test@example.com",
+            status=Partner.StatusPendaftaran.PENDING,
+            alasan_penolakan="Dokumen buram"
+        )
+        detail_url = reverse('partners:partner-detail', kwargs={'pk': p.pk})
+        res = self.client.get(detail_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIsNone(res.data['data']['rejection_reason'])
+
+        p.status = Partner.StatusPendaftaran.DITOLAK
+        p.save()
+        res = self.client.get(detail_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['data']['rejection_reason'], "Dokumen buram")
+        self.assertNotIn('password_hash', res.data['data'])
+
