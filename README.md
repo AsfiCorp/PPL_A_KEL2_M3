@@ -158,6 +158,7 @@ Server aktif di `http://127.0.0.1:8000/`.
 - Status Pengajuan Partner: `/pendaftaran-partner/status/`
 
 ---
+Form UI mengirim `multipart/form-data` ke `/api/partners/register/`, menampilkan error validasi dari API, lalu membuka halaman status setelah menerima respons sukses. Gambar PNG, JPG, atau JPEG hingga 5 MB didukung. Pastikan JavaScript browser aktif untuk mengirim form melalui API.
 
 ## 8. Pengujian Otomatis (Automated Tests)
 

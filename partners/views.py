@@ -23,18 +23,59 @@ def my_store(request):
     else:
         application_id = request.session.get('partner_application_id')
         partners = Partner.objects.filter(pk=application_id) if application_id else Partner.objects.none()
+    has_applications = partners.exists()
     query = request.GET.get('q', '').strip()
+    if has_applications and not query:
+        partner = partners.first()
+        return render(
+            request,
+            'partners/registration_status.html',
+            {
+                'active_page': 'my_store',
+                'partner': partner,
+                'submitted_at': timezone.localtime(partner.created_at),
+            },
+        )
     if query:
         partners = partners.filter(nama_usaha__icontains=query)
     return render(
         request,
         'partners/my_store.html',
-        {'active_page': 'my_store', 'partners': partners, 'query': query},
+        {
+            'active_page': 'my_store',
+            'partners': partners,
+            'has_applications': has_applications,
+            'query': query,
+        },
     )
 
 
 def register_partner(request):
     if request.method == 'POST':
+        if request.POST.get('complete_registration') == 'true':
+            registration_data = request.POST.copy()
+            registration_data.update(request.FILES)
+            serializer = PartnerRegistrationSerializer(
+                data=registration_data,
+                context={'request': request},
+            )
+            if serializer.is_valid():
+                partner = serializer.save()
+                request.session['partner_application_id'] = partner.pk
+                messages.success(request, 'Pendaftaran partner berhasil dikirim.')
+                return redirect('partner_ui:registration-status')
+
+            form = PartnerRegistrationForm(request.POST, request.FILES)
+            return render(
+                request,
+                'partners/register_partner.html',
+                {
+                    'active_page': 'my_store',
+                    'form': form,
+                    'registration_errors': serializer.errors,
+                },
+            )
+
         form = PartnerRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             partner = form.save(commit=False)
@@ -167,7 +208,8 @@ class PartnerListCreateView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = PartnerRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            partner = serializer.save()
+            request.session['partner_application_id'] = partner.pk
             return Response(
                 {
                     "success": True,
@@ -256,5 +298,27 @@ class PartnerDetailView(APIView):
         )
 
 
-# Alias untuk kompatibilitas endpoint awal
-PartnerRegistrationView = PartnerListCreateView
+class PartnerRegistrationView(APIView):
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PartnerRegistrationSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            partner = serializer.save()
+            request.session['partner_application_id'] = partner.pk
+            return Response(
+                {
+                    'status': 'success',
+                    'message': 'Pendaftaran partner berhasil dikirim dan menunggu verifikasi.',
+                    'data': serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {
+                'status': 'error',
+                'message': 'Pendaftaran gagal. Silakan periksa kembali data yang diisi.',
+                'errors': serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

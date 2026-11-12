@@ -41,6 +41,28 @@ class PartnerRegistrationAPITestCase(APITestCase):
         partner = Partner.objects.get(email_usaha=self.valid_payload['email_usaha'])
         self.assertEqual(partner.status, Partner.StatusPendaftaran.PENDING)
         self.assertEqual(partner.nama_usaha, self.valid_payload['nama_usaha'])
+        self.assertEqual(self.client.session['partner_application_id'], partner.pk)
+
+    def test_api_validation_errors_are_returned_for_ui(self):
+        response = self.client.post(self.url, {
+            **self.valid_payload,
+            'nama_usaha': '',
+            'email_usaha': 'bukan-email',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('nama_usaha', response.data['errors'])
+        self.assertIn('email_usaha', response.data['errors'])
+
+    def test_api_submission_can_render_registration_status_page(self):
+        response = self.client.post(self.url, data=self.valid_payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        status_response = self.client.get(reverse('partner_ui:registration-status'))
+
+        self.assertEqual(status_response.status_code, 200)
+        self.assertContains(status_response, self.valid_payload['nama_usaha'])
+        self.assertContains(status_response, 'Menunggu persetujuan')
 
     def test_post_partner_registration_v1_contract_compliance(self):
         """
@@ -223,6 +245,64 @@ class PartnerRegistrationAPITestCase(APITestCase):
         self.assertTrue(bool(partner.profil_usaha))
         self.assertEqual(partner.status, 'pending')
 
+    def test_completed_registration_creates_account_and_saves_responsible_documents(self):
+        payload = {
+            **self.valid_payload,
+            'email_usaha': 'toko.lengkap@example.com',
+            'complete_registration': 'true',
+            'nama_lengkap': 'Siti Aminah',
+            'nik': '3201010101010001',
+            'tempat_lahir': 'Bandung',
+            'tanggal_lahir': '1995-04-12',
+            'ktp': SimpleUploadedFile('ktp.pdf', b'%PDF-1.4 ktp', content_type='application/pdf'),
+            'foto_pemegang_ktp': SimpleUploadedFile(
+                'pemegang-ktp.jpg',
+                b'foto pemegang ktp',
+                content_type='image/jpeg',
+            ),
+            'account_email': 'siti.account@example.com',
+            'password': 'S3cure!LongPassword-2026',
+            'confirm_password': 'S3cure!LongPassword-2026',
+        }
+
+        response = self.client.post(self.url, data=payload, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        partner = Partner.objects.get(email_usaha=payload['email_usaha'])
+        self.addCleanup(partner.ktp.delete, save=False)
+        self.addCleanup(partner.foto_pemegang_ktp.delete, save=False)
+        self.assertEqual(partner.nama_lengkap, payload['nama_lengkap'])
+        self.assertEqual(partner.nik, payload['nik'])
+        self.assertEqual(partner.tempat_lahir, payload['tempat_lahir'])
+        self.assertEqual(str(partner.tanggal_lahir), payload['tanggal_lahir'])
+        self.assertTrue(partner.ktp)
+        self.assertTrue(partner.foto_pemegang_ktp)
+        self.assertEqual(partner.user.email, payload['account_email'])
+        self.assertTrue(partner.user.check_password(payload['password']))
+
+    def test_completed_registration_rejects_mismatched_passwords(self):
+        response = self.client.post(self.url, {
+            **self.valid_payload,
+            'complete_registration': 'true',
+            'nama_lengkap': 'Siti Aminah',
+            'nik': '3201010101010001',
+            'tempat_lahir': 'Bandung',
+            'tanggal_lahir': '1995-04-12',
+            'ktp': SimpleUploadedFile('ktp.pdf', b'%PDF-1.4 ktp', content_type='application/pdf'),
+            'foto_pemegang_ktp': SimpleUploadedFile(
+                'pemegang-ktp.pdf',
+                b'%PDF-1.4 photo',
+                content_type='application/pdf',
+            ),
+            'account_email': 'siti.account@example.com',
+            'password': 'S3cure!LongPassword-2026',
+            'confirm_password': 'Different!Password-2026',
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('confirm_password', response.data['errors'])
+        self.assertFalse(User.objects.filter(email='siti.account@example.com').exists())
+
 
 class PartnerRegistrationUITestCase(TestCase):
     def setUp(self):
@@ -238,11 +318,44 @@ class PartnerRegistrationUITestCase(TestCase):
 
     def test_ui_pages_render(self):
         self.assertEqual(self.client.get(reverse('partner_ui:home')).status_code, 200)
-        self.assertEqual(self.client.get(reverse('partner_ui:my-store')).status_code, 200)
+        store_response = self.client.get(reverse('partner_ui:my-store'))
+        self.assertEqual(store_response.status_code, 200)
+        self.assertContains(store_response, 'Pendaftaran partner')
         response = self.client.get(self.form_url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Informasi usaha')
+        self.assertContains(response, 'Informasi Usaha')
         self.assertContains(response, 'multipart/form-data')
+        self.assertContains(response, 'data-api-url="/api/partners/register/"')
+        self.assertContains(response, 'data-field-errors="email_usaha"')
+        self.assertContains(response, 'Dokumen Pendukung')
+        self.assertContains(response, 'Konfirmasi Pendaftaran')
+        self.assertContains(response, 'name="account_email"')
+        self.assertContains(response, 'name="foto_pemegang_ktp"')
+
+    def test_profile_drawer_is_available_and_closed_by_default(self):
+        response = self.client.get(reverse('partner_ui:home'))
+
+        self.assertContains(response, 'aria-controls="profile-drawer"')
+        self.assertContains(response, 'aria-expanded="false"')
+        self.assertContains(response, 'id="profile-drawer"')
+        self.assertContains(response, 'Menu Pengguna')
+        self.assertContains(response, 'Pesanan Saya')
+        self.assertContains(response, 'Notifikasi')
+        self.assertContains(response, 'Pengaturan')
+        self.assertContains(response, 'Toko Saya')
+        self.assertContains(response, 'href="/pendaftaran-partner/"')
+        self.assertContains(response, 'Pendaftaran Partner')
+        self.assertContains(response, 'class="profile-drawer"')
+        self.assertContains(response, 'aria-hidden="true"')
+
+    def test_authenticated_user_can_log_out_from_profile_drawer(self):
+        user = User.objects.create_user(username='drawer-user', password='password123')
+        self.client.force_login(user)
+
+        response = self.client.post(reverse('partner_ui:logout'))
+
+        self.assertRedirects(response, reverse('partner_ui:home'))
+        self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_registration_shows_pending_status(self):
         response = self.client.post(self.form_url, self.valid_payload)
@@ -257,6 +370,43 @@ class PartnerRegistrationUITestCase(TestCase):
         self.assertContains(status_response, 'Pendaftaran berhasil dikirim')
         self.assertContains(status_response, 'Toko UI Test')
         self.assertContains(status_response, 'Menunggu persetujuan')
+
+        store_response = self.client.get(reverse('partner_ui:my-store'))
+        self.assertEqual(store_response.status_code, 200)
+        self.assertTemplateUsed(store_response, 'partners/registration_status.html')
+        self.assertContains(store_response, 'Pendaftaran Partner')
+        self.assertContains(store_response, 'Status pendaftaran')
+        self.assertContains(store_response, 'Toko UI Test')
+        self.assertContains(store_response, 'Kategori usaha')
+        self.assertContains(store_response, 'Tanggal pengajuan')
+        self.assertContains(store_response, 'Menunggu persetujuan')
+        self.assertNotContains(store_response, 'Pendaftaran partner</a>')
+
+    def test_completed_registration_form_saves_documents_and_account(self):
+        response = self.client.post(self.form_url, {
+            **self.valid_payload,
+            'complete_registration': 'true',
+            'nama_lengkap': 'Siti Aminah',
+            'nik': '3201010101010001',
+            'tempat_lahir': 'Bandung',
+            'tanggal_lahir': '1995-04-12',
+            'ktp': SimpleUploadedFile('ktp.pdf', b'%PDF-1.4 ktp', content_type='application/pdf'),
+            'foto_pemegang_ktp': SimpleUploadedFile(
+                'pemegang-ktp.pdf',
+                b'%PDF-1.4 photo',
+                content_type='application/pdf',
+            ),
+            'account_email': 'siti.ui@example.com',
+            'password': 'S3cure!LongPassword-2026',
+            'confirm_password': 'S3cure!LongPassword-2026',
+        })
+
+        self.assertRedirects(response, reverse('partner_ui:registration-status'))
+        partner = Partner.objects.get(email_usaha=self.valid_payload['email_usaha'])
+        self.addCleanup(partner.ktp.delete, save=False)
+        self.addCleanup(partner.foto_pemegang_ktp.delete, save=False)
+        self.assertEqual(partner.nama_lengkap, 'Siti Aminah')
+        self.assertEqual(partner.user.email, 'siti.ui@example.com')
 
     def test_invalid_registration_renders_field_errors(self):
         response = self.client.post(self.form_url, {
