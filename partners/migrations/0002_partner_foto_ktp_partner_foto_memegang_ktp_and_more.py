@@ -43,16 +43,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='partner',
-            name='tanggal_lahir',
-            field=models.DateField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='partner',
-            name='tempat_lahir',
-            field=models.CharField(blank=True, max_length=100, null=True),
-        ),
-        migrations.AddField(
-            model_name='partner',
             name='unit_usaha_id',
             field=models.IntegerField(blank=True, null=True),
         ),

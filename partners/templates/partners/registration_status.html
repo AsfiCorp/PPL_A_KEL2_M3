@@ -5,32 +5,49 @@
 {% block content %}
 <nav class="breadcrumb" aria-label="Jejak halaman">
     <a href="{% url 'partner_ui:home' %}">Beranda</a><span aria-hidden="true">/</span>
-    <a href="{% url 'partner_ui:my-store' %}">Toko saya</a><span aria-hidden="true">/</span>
-    <span>Status pendaftaran</span>
+    {% if partner.status == 'pending' %}
+        <span>Toko saya</span><span aria-hidden="true">/</span>
+    {% else %}
+        <a href="{% url 'partner_ui:my-store' %}">Toko saya</a><span aria-hidden="true">/</span>
+    {% endif %}
+    <span>Pendaftaran Partner</span>
 </nav>
 <section class="page-heading">
     <div>
-        <h1>Pendaftaran partner</h1>
-        <p>Mulai berjualan dengan mendaftarkan usaha Anda sebagai partner Araya Business Hub.</p>
+        <h1>Pendaftaran Partner</h1>
+        <p>Pantau status pendaftaran usaha Anda sebagai Partner Araya Business Hub.</p>
     </div>
 </section>
 
-<section class="card status-card">
+<section class="card status-card status-card-{{ partner.status }}" data-registration-status="{{ partner.status }}">
     <div class="status-intro">
-        <div class="status-clock" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="M24 13v12l8 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
         {% if partner.status == 'pending' %}
-            <h2>Pendaftaran berhasil dikirim</h2>
-            <p>Pendaftaran usaha Anda sedang menunggu verifikasi admin.</p>
+            <div class="status-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="M24 13v12l8 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h2>Pendaftaran Berhasil Dikirim</h2>
+            <p>Tim Araya Business Hub akan meninjau data pendaftaran Anda. Silakan cek kembali halaman ini secara berkala untuk mengetahui perkembangan status pendaftaran.</p>
+            <div class="status-notice status-notice-pending" role="status">
+                <span class="status-notice-icon" aria-hidden="true">i</span>
+                <p>Pendaftaran usaha Anda sedang menunggu verifikasi admin.</p>
+            </div>
         {% elif partner.status == 'terverifikasi' %}
-            <h2>Pendaftaran disetujui</h2>
-            <p>Pendaftaran usaha Anda telah diverifikasi.</p>
+            <div class="status-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="m14 24 7 7 14-15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h2>Pendaftaran Partner Berhasil Diverifikasi</h2>
+            <p>Selamat! Pendaftaran usaha Anda telah disetujui. Anda kini terdaftar sebagai Partner Araya Business Hub.</p>
         {% elif partner.status == 'ditolak' %}
-            <h2>Pendaftaran ditolak</h2>
-            <p>Pendaftaran usaha Anda belum dapat disetujui.</p>
+            <div class="status-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="m17 17 14 14m0-14L17 31" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <h2>Pendaftaran Partner Ditolak</h2>
+            <p>Mohon maaf, pendaftaran usaha Anda belum dapat disetujui karena belum memenuhi persyaratan.</p>
         {% else %}
-            <h2>Pendaftaran ditangguhkan</h2>
+            <div class="status-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2.5"/><path d="M19 17v14m10-14v14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <h2>Pendaftaran Ditangguhkan</h2>
             <p>Status pendaftaran usaha Anda telah diperbarui oleh admin.</p>
         {% endif %}
     </div>
@@ -69,11 +86,21 @@
                 <dt>Alasan penolakan</dt>
                 <dd>{{ partner.alasan_penolakan }}</dd>
             </div>
+            {% elif partner.status == 'ditolak' %}
+            <div class="detail-row">
+                <dt>Alasan penolakan</dt>
+                <dd>Silakan hubungi tim Araya Business Hub untuk informasi lebih lanjut.</dd>
             {% endif %}
         </dl>
     </div>
-    <div class="status-actions">
-        <a class="button button-primary" href="{% url 'partner_ui:home' %}">Beranda</a>
-    </div>
+    {% if partner.status == 'terverifikasi' %}
+        <div class="status-actions">
+            <a class="button button-primary" href="https://ppl-m1-fe.vercel.app/">Login ke Akun</a>
+        </div>
+    {% elif partner.status == 'ditolak' %}
+        <div class="status-actions">
+            <a class="button button-primary" href="{% url 'partner_ui:partner-registration' %}">Coba Mendaftar Kembali</a>
+        </div>
+    {% endif %}
 </section>
 {% endblock %}

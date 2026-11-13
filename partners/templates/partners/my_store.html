@@ -9,10 +9,15 @@
 <section class="page-heading">
     <div>
         <h1>Toko saya</h1>
-        <p>Mulai berjualan dengan mendaftarkan usaha Anda sebagai partner Araya Business Hub.</p>
+        {% if has_applications %}
+            <p>Pantau status pendaftaran usaha Anda sebagai partner Araya Business Hub.</p>
+        {% else %}
+            <p>Mulai berjualan dengan mendaftarkan usaha Anda sebagai partner Araya Business Hub.</p>
+        {% endif %}
     </div>
 </section>
 
+{% if not has_applications and not query %}
 <section class="card callout-card" aria-labelledby="start-selling-title">
     <div class="store-icon" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none">
@@ -24,13 +29,14 @@
     <p>Jadilah partner Araya Business Hub dan kembangkan usaha Anda dengan menjangkau lebih banyak pelanggan. Daftarkan usaha Anda sekarang.</p>
     <a class="button button-primary" href="{% url 'partner_ui:partner-registration' %}">Pendaftaran partner</a>
 </section>
+{% endif %}
 
 {% if partners %}
 <section class="section-block" aria-labelledby="applications-title">
     <div class="section-heading">
         <div>
-            <h2 id="applications-title">Pendaftaran usaha</h2>
-            <p>Periksa status pendaftaran partner Anda.</p>
+            <h2 id="applications-title">Status pendaftaran</h2>
+            <p>Informasi dan status terbaru pengajuan usaha Anda.</p>
         </div>
     </div>
     <div class="application-list">
@@ -38,7 +44,7 @@
         <article class="card application-card">
             <div class="application-details">
                 <h3>{{ partner.nama_usaha }}</h3>
-                <p>{{ partner.get_kategori_usaha_display }}</p>
+                <p>{{ partner.get_kategori_usaha_display }} &middot; Diajukan {{ partner.created_at|date:"j M Y" }}</p>
             </div>
             {% if partner.status == 'pending' %}
                 <span class="status-badge status-pending"><span class="status-dot"></span>Menunggu persetujuan</span>

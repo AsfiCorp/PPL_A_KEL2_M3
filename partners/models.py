@@ -51,6 +51,16 @@ class Partner(models.Model):
         null=True,
         blank=True
     )
+    nama_lengkap = models.CharField(max_length=255, blank=True)
+    nik = models.CharField(max_length=16, blank=True)
+    tempat_lahir = models.CharField(max_length=100, blank=True)
+    tanggal_lahir = models.DateField(null=True, blank=True)
+    ktp = models.FileField(upload_to='partner_documents/ktp/', null=True, blank=True)
+    foto_pemegang_ktp = models.FileField(
+        upload_to='partner_documents/ktp_holders/',
+        null=True,
+        blank=True,
+    )
 
     # Identitas Penanggung Jawab & Dokumen
     penanggung_jawab_nama = models.CharField(max_length=255, null=True, blank=True)

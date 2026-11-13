@@ -10,70 +10,183 @@
 </nav>
 <section class="page-heading">
     <div>
-        <h1>Pendaftaran partner</h1>
-        <p>Lengkapi informasi usaha Anda untuk bergabung sebagai partner Araya Business Hub.</p>
+        <h1>Pendaftaran Partner</h1>
+        <p>Lengkapi informasi usaha Anda untuk bergabung sebagai Partner Araya Business Hub.</p>
     </div>
 </section>
 
-<form class="card registration-form" method="post" enctype="multipart/form-data" novalidate>
+<form
+    class="card registration-form"
+    method="post"
+    enctype="multipart/form-data"
+    data-api-url="{% url 'partners:partner-register' %}"
+    data-status-url="{% url 'partner_ui:registration-status' %}"
+    novalidate
+>
     {% csrf_token %}
-    {% if form.non_field_errors %}
-        <div class="form-summary" role="alert">
-            <strong>Pendaftaran belum dapat dikirim.</strong>
-            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    <input type="hidden" name="complete_registration" value="true">
+    <div class="form-summary" role="alert" aria-live="assertive" {% if not registration_errors %}hidden{% endif %}>
+        <strong>Pendaftaran belum dapat dikirim.</strong>
+        <ul class="form-summary-errors">
+            {% for field, errors in registration_errors.items %}
+                {% for error in errors %}<li>{{ field }}: {{ error }}</li>{% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+
+    <ol class="registration-steps" aria-label="Tahapan pendaftaran">
+        <li class="is-active" aria-current="step"><span>1</span><small>Informasi Usaha</small></li>
+        <li><span>2</span><small>Dokumen Pendukung</small></li>
+        <li><span>3</span><small>Akun</small></li>
+        <li><span>4</span><small>Konfirmasi</small></li>
+    </ol>
+
+    <section class="registration-step" data-step="1" aria-labelledby="business-step-title">
+        <fieldset class="form-fieldset">
+            <legend id="business-step-title">Informasi Usaha</legend>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.nama_usaha.id_for_label }}">Nama Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.nama_usaha }}
+                    <div class="field-errors" data-field-errors="nama_usaha"></div>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.kategori_usaha.id_for_label }}">Kategori Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.kategori_usaha }}
+                    <div class="field-errors" data-field-errors="kategori_usaha"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="{{ form.deskripsi_usaha.id_for_label }}">Deskripsi Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.deskripsi_usaha }}
+                    <div class="field-errors" data-field-errors="deskripsi_usaha"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="{{ form.alamat_usaha.id_for_label }}">Alamat Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.alamat_usaha }}
+                    <div class="field-errors" data-field-errors="alamat_usaha"></div>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.nomor_telepon_usaha.id_for_label }}">Nomor Telepon Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.nomor_telepon_usaha }}
+                    <div class="field-errors" data-field-errors="nomor_telepon_usaha"></div>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.email_usaha.id_for_label }}">Email Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    {{ form.email_usaha }}
+                    <div class="field-errors" data-field-errors="email_usaha"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="{{ form.profil_usaha.id_for_label }}">Profil Usaha <span class="optional-note">(opsional)</span></label>
+                    <label class="upload-control" for="{{ form.profil_usaha.id_for_label }}">
+                        <span class="upload-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <strong id="upload-label">Pilih gambar</strong>
+                        <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau JPEG</span>
+                        {{ form.profil_usaha }}
+                    </label>
+                    <div class="field-errors" data-field-errors="profil_usaha"></div>
+                    {% if form.profil_usaha.help_text %}<p class="help-text">{{ form.profil_usaha.help_text }}</p>{% endif %}
+                </div>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="registration-step" data-step="2" aria-labelledby="documents-step-title" hidden>
+        <fieldset class="form-fieldset">
+            <legend id="documents-step-title">Dokumen Pendukung</legend>
+            <p class="step-description">Lengkapi identitas penanggung jawab unit usaha Anda.</p>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="id_nama_lengkap">Nama Lengkap <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_nama_lengkap" name="nama_lengkap" type="text" autocomplete="name" placeholder="Masukkan nama lengkap" required>
+                    <div class="field-errors" data-field-errors="nama_lengkap"></div>
+                </div>
+                <div class="form-field">
+                    <label for="id_nik">Nomor Induk Kependudukan (NIK) <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_nik" name="nik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="Masukkan 16 digit NIK" required>
+                    <div class="field-errors" data-field-errors="nik"></div>
+                </div>
+                <div class="form-field">
+                    <label for="id_tempat_lahir">Tempat Lahir <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_tempat_lahir" name="tempat_lahir" type="text" placeholder="Masukkan tempat lahir" required>
+                    <div class="field-errors" data-field-errors="tempat_lahir"></div>
+                </div>
+                <div class="form-field">
+                    <label for="id_tanggal_lahir">Tanggal Lahir <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_tanggal_lahir" name="tanggal_lahir" type="date" required>
+                    <div class="field-errors" data-field-errors="tanggal_lahir"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="id_ktp">Kartu Tanda Penduduk <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <label class="upload-control" for="id_ktp">
+                        <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <strong data-upload-label="ktp">Unggah File</strong>
+                        <span data-upload-hint="ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
+                        <input id="id_ktp" name="ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
+                    </label>
+                    <div class="field-errors" data-field-errors="ktp"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="id_foto_pemegang_ktp">Foto Orang Memegang KTP <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <label class="upload-control" for="id_foto_pemegang_ktp">
+                        <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <strong data-upload-label="foto_pemegang_ktp">Unggah File</strong>
+                        <span data-upload-hint="foto_pemegang_ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
+                        <input id="id_foto_pemegang_ktp" name="foto_pemegang_ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
+                    </label>
+                    <div class="field-errors" data-field-errors="foto_pemegang_ktp"></div>
+                </div>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="registration-step" data-step="3" aria-labelledby="account-step-title" hidden>
+        <fieldset class="form-fieldset">
+            <legend id="account-step-title">Akun</legend>
+            <p class="step-description">Buat akun untuk mengakses Araya Business Hub.</p>
+            <div class="form-grid form-grid-single">
+                <div class="form-field form-field-wide">
+                    <label for="id_account_email">Email <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_account_email" name="account_email" type="email" autocomplete="email" placeholder="Masukkan alamat email Anda" required>
+                    <div class="field-errors" data-field-errors="account_email"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="id_password">Password <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_password" name="password" type="password" autocomplete="new-password" placeholder="Masukkan password Anda" required>
+                    <div class="field-errors" data-field-errors="password"></div>
+                </div>
+                <div class="form-field form-field-wide">
+                    <label for="id_confirm_password">Konfirmasi Password <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_confirm_password" name="confirm_password" type="password" autocomplete="new-password" placeholder="Masukkan kembali password Anda" required>
+                    <div class="field-errors" data-field-errors="confirm_password"></div>
+                </div>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="registration-step" data-step="4" aria-labelledby="confirmation-step-title" hidden>
+        <h2 id="confirmation-step-title">Konfirmasi Pendaftaran</h2>
+        <p class="step-description">Periksa kembali informasi dan dokumen yang telah Anda lengkapi sebelum mengirim pendaftaran.</p>
+        <div class="confirmation-card">
+            <h3>Informasi Usaha</h3>
+            <dl class="confirmation-list" data-confirmation="business"></dl>
         </div>
-    {% endif %}
-    <fieldset class="form-fieldset">
-        <legend>Informasi usaha</legend>
-        <div class="form-grid">
-            <div class="form-field">
-                <label for="{{ form.nama_usaha.id_for_label }}">Nama usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.nama_usaha }}
-                {% for error in form.nama_usaha.errors %}<p class="field-error" id="nama-usaha-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field">
-                <label for="{{ form.kategori_usaha.id_for_label }}">Kategori usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.kategori_usaha }}
-                {% for error in form.kategori_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field form-field-wide">
-                <label for="{{ form.deskripsi_usaha.id_for_label }}">Deskripsi usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.deskripsi_usaha }}
-                {% for error in form.deskripsi_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field form-field-wide">
-                <label for="{{ form.alamat_usaha.id_for_label }}">Alamat usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.alamat_usaha }}
-                {% for error in form.alamat_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field">
-                <label for="{{ form.nomor_telepon_usaha.id_for_label }}">Nomor telepon usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.nomor_telepon_usaha }}
-                {% for error in form.nomor_telepon_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field">
-                <label for="{{ form.email_usaha.id_for_label }}">Email usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                {{ form.email_usaha }}
-                {% for error in form.email_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            </div>
-            <div class="form-field form-field-wide">
-                <label for="{{ form.profil_usaha.id_for_label }}">Profil usaha <span class="optional-note">(opsional)</span></label>
-                <label class="upload-control" for="{{ form.profil_usaha.id_for_label }}">
-                    <span class="upload-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </span>
-                    <strong id="upload-label">Pilih gambar</strong>
-                    <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau JPEG</span>
-                    {{ form.profil_usaha }}
-                </label>
-                {% for error in form.profil_usaha.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-                {% if form.profil_usaha.help_text %}<p class="help-text">{{ form.profil_usaha.help_text }}</p>{% endif %}
-            </div>
+        <div class="confirmation-card">
+            <h3>Informasi Penanggung Jawab</h3>
+            <dl class="confirmation-list" data-confirmation="responsible"></dl>
         </div>
-    </fieldset>
+        <div class="confirmation-card">
+            <h3>Akun</h3>
+            <dl class="confirmation-list" data-confirmation="account"></dl>
+        </div>
+    </section>
+
     <div class="form-actions">
         <a class="button button-secondary" href="{% url 'partner_ui:my-store' %}">Batal</a>
-        <button class="button button-primary" type="submit">Daftarkan usaha</button>
+        <button class="button button-secondary" type="button" data-step-back hidden>Kembali</button>
+        <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
+        <button class="button button-primary" type="submit" data-step-submit hidden>Kirim Pendaftaran</button>
     </div>
 </form>
 {% endblock %}

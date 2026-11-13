@@ -211,8 +211,17 @@ cd PPL_A_KEL2_M3
 ./venv/bin/python manage.py runserver
 ```
 
-### Opsi Deployment Cloud (Gratis Rp 0):
-1. **Frontend Web & Dokumentasi API (Scalar Docs)**: Di-deploy ke **Vercel** gratis.
-2. **Backend API Django (Modul 3)**:
-   * **Opsi PythonAnywhere**: Sangat ramah Django, mendukung database SQLite dan folder berkas `media/` secara langsung.
-   * **Opsi Vercel Serverless**: Menggunakan koneksi database cloud gratis (**Neon.tech / Supabase**) dan media storage gratis (**Cloudinary**).
+---
+Form UI mengirim `multipart/form-data` ke `/api/partners/register/`, menampilkan error validasi dari API, lalu membuka halaman status setelah menerima respons sukses. Gambar PNG, JPG, atau JPEG hingga 5 MB didukung. Pastikan JavaScript browser aktif untuk mengirim form melalui API.
+
+## 8. Pengujian Otomatis (Automated Tests)
+
+Jalankan pengujian menggunakan skrip resmi:
+```bash
+./run_test.sh
+```
+Atau via Django runner:
+```bash
+./venv/bin/python manage.py test partners -v 2
+```
+Seluruh 36 test suite (unit tests dan QA acceptance tests) berjalan otomatis dengan status kelulusan 100%.
