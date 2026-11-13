@@ -367,9 +367,19 @@ class PartnerRegistrationUITestCase(TestCase):
 
         status_response = self.client.get(response.url)
         self.assertEqual(status_response.status_code, 200)
-        self.assertContains(status_response, 'Pendaftaran berhasil dikirim')
+        self.assertContains(status_response, 'Pendaftaran Berhasil Dikirim')
         self.assertContains(status_response, 'Toko UI Test')
         self.assertContains(status_response, 'Menunggu persetujuan')
+        self.assertContains(status_response, 'Tim Araya Business Hub akan meninjau')
+
+        partner.status = Partner.StatusPendaftaran.TERVERIFIKASI
+        partner.save(update_fields=['status', 'updated_at'])
+        verified_response = self.client.get(response.url)
+        self.assertContains(verified_response, 'Pendaftaran Partner Berhasil Diverifikasi')
+        self.assertContains(verified_response, 'Terverifikasi')
+        self.assertContains(verified_response, 'href="https://ppl-m1-fe.vercel.app/"')
+        self.assertContains(verified_response, 'Login ke Akun')
+        self.assertNotContains(verified_response, 'sedang menunggu verifikasi admin')
 
         store_response = self.client.get(reverse('partner_ui:my-store'))
         self.assertEqual(store_response.status_code, 200)
@@ -379,8 +389,34 @@ class PartnerRegistrationUITestCase(TestCase):
         self.assertContains(store_response, 'Toko UI Test')
         self.assertContains(store_response, 'Kategori usaha')
         self.assertContains(store_response, 'Tanggal pengajuan')
-        self.assertContains(store_response, 'Menunggu persetujuan')
+        self.assertContains(store_response, 'Terverifikasi')
         self.assertNotContains(store_response, 'Pendaftaran partner</a>')
+
+    def test_pending_application_cannot_reopen_or_resubmit_registration(self):
+        partner = Partner.objects.create(
+            nama_usaha='Usaha Pending',
+            kategori_usaha='Produk',
+            deskripsi_usaha='Usaha yang menunggu verifikasi.',
+            alamat_usaha='Jl. Merdeka No. 1',
+            nomor_telepon_usaha='081234567891',
+            email_usaha='usaha.pending.lock@example.com',
+            status=Partner.StatusPendaftaran.PENDING,
+        )
+        session = self.client.session
+        session['partner_application_id'] = partner.pk
+        session.save()
+
+        get_response = self.client.get(self.form_url)
+        self.assertRedirects(get_response, reverse('partner_ui:registration-status'))
+
+        post_response = self.client.post(self.form_url, self.valid_payload)
+        self.assertRedirects(post_response, reverse('partner_ui:registration-status'))
+        self.assertEqual(Partner.objects.count(), 1)
+
+        status_response = self.client.get(reverse('partner_ui:registration-status'))
+        self.assertContains(status_response, 'data-registration-status="pending"')
+        self.assertContains(status_response, '<span>Toko saya</span>', html=True)
+        self.assertNotContains(status_response, '<a href="/toko-saya/">Toko saya</a>', html=True)
 
     def test_completed_registration_form_saves_documents_and_account(self):
         response = self.client.post(self.form_url, {
@@ -453,9 +489,11 @@ class PartnerRegistrationUITestCase(TestCase):
 
         response = self.client.get(reverse('partner_ui:registration-status'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Pendaftaran ditolak')
+        self.assertContains(response, 'Pendaftaran Partner Ditolak')
         self.assertContains(response, 'Alasan penolakan')
         self.assertContains(response, 'Dokumen legalitas tidak lengkap.')
+        self.assertContains(response, 'Coba Mendaftar Kembali')
+        self.assertContains(response, 'href="/pendaftaran-partner/"')
 
 
 class PartnerRegistrationTask4_2TestCase(APITestCase):
@@ -750,4 +788,3 @@ class PartnerValidationTask5_2TestCase(APITestCase):
         self.assertTrue(response.data['success'])
         partner = Partner.objects.get(email_usaha="pass.strong@example.com")
         self.assertTrue(check_password("ArayaPartner2026", partner.password_hash))
-

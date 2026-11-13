@@ -924,17 +924,29 @@ textarea.form-control {
     text-align: center;
 }
 
-.status-clock {
+.status-icon {
     width: 56px;
     height: 56px;
     margin-bottom: var(--space-3);
     color: var(--text);
 }
 
-.status-clock svg {
+.status-icon svg {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.status-card-terverifikasi .status-icon {
+    color: var(--success-solid);
+}
+
+.status-card-ditolak .status-icon {
+    color: var(--danger-solid);
+}
+
+.status-card-ditangguhkan .status-icon {
+    color: var(--neutral-solid);
 }
 
 .status-intro h2 {
@@ -949,6 +961,37 @@ textarea.form-control {
     color: var(--text-muted);
     font-size: 16px;
     line-height: 24px;
+}
+
+.status-notice {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    text-align: left;
+}
+
+.status-notice-pending {
+    color: var(--text-muted);
+}
+
+.status-notice-icon {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1.5px solid currentColor;
+    border-radius: var(--radius-full);
+    font: 600 15px/1 var(--font-head);
+}
+
+.status-notice p {
+    margin: 0;
 }
 
 .status-information {

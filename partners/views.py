@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import HttpResponse, Http404
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -50,7 +51,15 @@ def my_store(request):
     )
 
 
+@never_cache
 def register_partner(request):
+    application_id = request.session.get('partner_application_id')
+    if application_id and Partner.objects.filter(
+        pk=application_id,
+        status=Partner.StatusPendaftaran.PENDING,
+    ).exists():
+        return redirect('partner_ui:registration-status')
+
     if request.method == 'POST':
         if request.POST.get('complete_registration') == 'true':
             registration_data = request.POST.copy()
@@ -95,6 +104,7 @@ def register_partner(request):
     )
 
 
+@never_cache
 def registration_status(request):
     application_id = request.session.get('partner_application_id')
     if application_id is None:
