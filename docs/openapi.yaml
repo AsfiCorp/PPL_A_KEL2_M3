@@ -4,19 +4,29 @@ info:
   description: |
     Spesifikasi resmi API dan Event komunikasi antarmodul untuk Modul 3 (Manajemen Partner & Pendaftaran Mitra)
     Araya Business Hub Platform. Mengacu penuh pada Panduan API Bersama v1.0.
+
+    Dokumentasi ini mencakup seluruh siklus pengembangan yang dikelompokkan secara tegas menjadi:
+    - [SPRINT 1] Fondasi Pendaftaran Mandiri (M3-US1), Cek Status Pendaftaran (M3-US3), dan Katalog Toko Publik (K-06).
+    - [SPRINT 2] Verifikasi Legalitas & Sinkronisasi Akun Otomatis ke Modul 1 (M3-US2), serta Penangguhan & Re-aktivasi Mitra (M3-US4).
   version: 1.0.0
+
 servers:
   - url: http://127.0.0.1:8000/api/m3/v1
-    description: Server Lokal Pengujian
-  - url: https://[server-bersama]/api/m3/v1
-    description: Server Bersama Staging / Produksi
+    description: Server Lokal Pengujian (Development)
+  - url: https://mochammadharifitrian.pythonanywhere.com/api/m3/v1
+    description: Server Staging / Produksi (PythonAnywhere)
+
 tags:
-  - name: Pendaftaran Partner (M3-US1)
-    description: Registrasi calon partner mandiri dengan upload berkas dokumen identitas (KTP & Selfie).
-  - name: Status Pendaftaran (M3-US3)
-    description: Pelacakan status pendaftaran partner dan alasan penolakan (Dual Lookup ID & PRT).
-  - name: Katalog Partner Terverifikasi (K-06)
-    description: Penyediaan data partner terverifikasi untuk konsumsi Modul 5 (Katalog Publik) dan Modul 4.
+  - name: "[SPRINT 1] Pendaftaran Partner (M3-US1)"
+    description: Registrasi mandiri calon partner dengan upload dokumen legalitas (Foto KTP & Selfie) dan pembuatan kode unik partner_id (PRT-YYYYMMDD-XXXX).
+  - name: "[SPRINT 1] Status Pendaftaran (M3-US3)"
+    description: Pelacakan status pendaftaran partner (pending, terverifikasi, ditolak) dan alasan penolakan secara publik (Dual Lookup ID & PRT).
+  - name: "[SPRINT 1] Katalog Partner Terverifikasi (K-06)"
+    description: Penyediaan data partner terverifikasi untuk konsumsi Modul 5 (Katalog Publik) dan otorisasi hak jual Modul 4.
+  - name: "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
+    description: Dashboard dan aksi verifikasi oleh Administrator (Setujui / Tolak dengan alasan), serta sinkronisasi otomatis akun ke Modul 1.
+  - name: "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
+    description: Penangguhan (suspend) partner bermasalah dengan alasan wajib, dan re-aktivasi partner yang telah memenuhi syarat.
 
 components:
   securitySchemes:
@@ -24,12 +34,12 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token JWT dari M1 (berlaku 8 jam)
+      description: Token JWT dari Modul 1 (berlaku 8 jam, memuat role "admin" atau "partner")
     serviceKey:
       type: apiKey
       in: header
       name: X-Service-Key
-      description: Kunci modul untuk komunikasi antarmodul tanpa pengguna
+      description: Kunci modul untuk komunikasi langsung antarmodul tanpa pengguna
 
   schemas:
     Error:
@@ -80,85 +90,80 @@ components:
           example: 20
         total:
           type: integer
-          example: 5
+          example: 45
         total_pages:
           type: integer
-          example: 1
+          example: 3
 
     PartnerData:
       type: object
+      required:
+        - id
+        - partner_id
+        - nama_usaha
+        - kategori_usaha
+        - status
       properties:
         id:
           type: integer
           example: 1
+          description: ID numerik internal partner di Modul 3
         partner_id:
           type: string
           example: PRT-20261108-A9F2
-          description: Kode unik referensi pendaftaran partner untuk pelacakan publik (PRT-YYYYMMDD-XXXX).
-        user_id:
-          type: integer
-          nullable: true
-          example: 42
+          description: Kode unik referensi publik bisnis partner (PRT-YYYYMMDD-XXXX)
         unit_usaha_id:
           type: integer
           nullable: true
           example: 1
           description: Referensi ID Master Unit Usaha dari Modul 2
+        user_id:
+          type: integer
+          nullable: true
+          example: 42
+          description: ID pengguna resmi dari Modul 1 setelah akun disetujui
         nama_usaha:
           type: string
-          example: Toko Berkah Sejahtera
+          example: Toko Roti Barokah
         kategori_usaha:
           type: string
           enum: [Produk, Jasa]
           example: Produk
         deskripsi_usaha:
           type: string
-          example: Menjual kebutuhan pokok dan sembako berkualitas.
+          example: Menjual aneka roti tawar dan kue basah tradisional.
         alamat_usaha:
           type: string
-          example: Jl. Gatot Subroto No. 45, Bandung
+          example: Jl. Lengkong Besar No. 45, Bandung
         nomor_telepon_usaha:
           type: string
           example: "081234567890"
         email_usaha:
           type: string
           format: email
-          example: toko.berkah@example.com
-        profil_usaha:
-          type: string
-          nullable: true
-          example: /media/partner_profiles/profil.png
+          example: roti.barokah@example.com
         penanggung_jawab_nama:
           type: string
-          nullable: true
           example: Budi Santoso
         penanggung_jawab_nik:
           type: string
-          pattern: '^[0-9]{16}$'
-          minLength: 16
-          maxLength: 16
-          nullable: true
           example: "3201234567890001"
-          description: NIK penanggung jawab wajib tepat 16 digit angka (T5.2).
-        tempat_lahir:
+          description: NIK 16 digit penanggung jawab
+        profil_usaha:
           type: string
+          format: uri
           nullable: true
-          example: Bandung
-        tanggal_lahir:
-          type: string
-          format: date
-          nullable: true
-          example: "1990-05-15"
+          example: https://server-bersama/media/partner_profiles/profil.png
         foto_ktp:
           type: string
+          format: uri
           nullable: true
-          example: /media/partner_documents/ktp/ktp.png
-          description: URL berkas foto KTP (JPG/PNG maks 5MB).
+          example: https://server-bersama/media/partner_documents/ktp/foto.jpg
         foto_memegang_ktp:
           type: string
+          format: uri
           nullable: true
-          example: /media/partner_documents/selfie/selfie_ktp.png
-          description: URL berkas selfie memegang KTP (JPG/PNG maks 5MB).
+          example: https://server-bersama/media/partner_documents/selfie/selfie.jpg
         status:
           type: string
           enum: [pending, terverifikasi, ditolak, ditangguhkan]
@@ -166,40 +171,37 @@ components:
         alasan_penolakan:
           type: string
           nullable: true
-          example: null
+          example: Foto KTP buram dan tidak terbaca.
         rejection_reason:
           type: string
           nullable: true
-          description: Alasan penolakan dari admin bila status bernilai 'ditolak' (M3-US3 AC 2 / Task T11).
-          example: null
+          example: Foto KTP buram dan tidak terbaca.
         alasan_penangguhan:
           type: string
           nullable: true
-          example: null
+          example: Partner dilaporkan menjual produk tidak sesuai standar.
         created_at:
           type: string
           format: date-time
-          example: "2026-11-08T09:15:00+07:00"
+          example: "2026-11-08T10:00:00+07:00"
         updated_at:
           type: string
           format: date-time
-          example: "2026-11-08T09:15:00+07:00"
+          example: "2026-11-08T10:00:00+07:00"
 
     PartnerSingleResponse:
       type: object
       required:
         - success
+        - message
         - data
       properties:
         success:
           type: boolean
           example: true
-        status:
-          type: string
-          example: success
         message:
           type: string
-          example: Pendaftaran partner berhasil dikirim dan menunggu verifikasi.
+          example: Data partner berhasil diambil.
         data:
           $ref: '#/components/schemas/PartnerData'
 
@@ -207,12 +209,16 @@ components:
       type: object
       required:
         - success
+        - message
         - data
         - meta
       properties:
         success:
           type: boolean
           example: true
+        message:
+          type: string
+          example: Daftar partner berhasil diambil.
         data:
           type: array
           items:
@@ -220,108 +226,137 @@ components:
         meta:
           $ref: '#/components/schemas/PaginationMeta'
 
-    PartnerRegisterRequest:
+    AdminVerifyRequest:
       type: object
       required:
-        - nama_usaha
-        - kategori_usaha
-        - deskripsi_usaha
-        - alamat_usaha
-        - nomor_telepon_usaha
-        - email_usaha
+        - action
       properties:
-        nama_usaha:
+        action:
           type: string
-          example: Toko Berkah Sejahtera
-        kategori_usaha:
+          enum: [approve, reject]
+          example: approve
+          description: Aksi verifikasi admin (approve untuk setujui, reject untuk tolak)
+        alasan_penolakan:
           type: string
-          enum: [Produk, Jasa]
-          example: Produk
-        unit_usaha_id:
-          type: integer
-          nullable: true
-          example: 1
-          description: ID Master Unit Usaha dari Modul 2.
-        deskripsi_usaha:
+          example: Foto KTP tidak jelas dan NIK tidak valid.
+          description: Wajib diisi jika action bernilai reject (M3-US2 AC 4)
+
+    AdminSuspendRequest:
+      type: object
+      required:
+        - alasan_penangguhan
+      properties:
+        alasan_penangguhan:
           type: string
-          example: Menjual kebutuhan pokok dan sembako berkualitas.
-        alamat_usaha:
-          type: string
-          example: Jl. Gatot Subroto No. 45, Bandung
-        nomor_telepon_usaha:
-          type: string
-          example: "081234567890"
-        email_usaha:
-          type: string
-          format: email
-          example: toko.berkah@example.com
-        password:
-          type: string
-          format: password
-          minLength: 8
-          example: "PasswordKuat2026"
-          description: Password akun partner untuk login ke Modul 1. Minimal 8 karakter kombinasi huruf dan angka (write-only).
-        profil_usaha:
-          type: string
-          format: binary
-          description: Berkas gambar profil (PNG/JPG, ukuran maksimal 5 MB) opsional.
-        penanggung_jawab_nama:
-          type: string
-          example: Budi Santoso
-        penanggung_jawab_nik:
-          type: string
-          pattern: '^[0-9]{16}$'
-          minLength: 16
-          maxLength: 16
-          example: "3201234567890001"
-          description: NIK penanggung jawab wajib tepat 16 digit angka (T5.2).
-        tempat_lahir:
-          type: string
-          example: Bandung
-        tanggal_lahir:
-          type: string
-          format: date
-          example: "1990-05-15"
-        foto_ktp:
-          type: string
-          format: binary
-          description: Berkas foto KTP penanggung jawab (format JPG/PNG, ukuran maksimal 5 MB).
-        foto_memegang_ktp:
-          type: string
-          format: binary
-          description: Berkas foto selfie penanggung jawab memegang KTP (format JPG/PNG, ukuran maksimal 5 MB).
+          example: Terdapat keluhan berulang terkait kualitas layanan.
+          description: Alasan penangguhan partner (wajib diisi sesuai M3-US4 AC 4)
 
 paths:
+
+  # =========================================================================
+  # [SPRINT 1] ENDPOINTS
+  # =========================================================================
+
   /partners:
     post:
       tags:
-        - Pendaftaran Partner (M3-US1)
-      summary: Pendaftaran Calon Partner Baru (M3-US1, T4.2, T5.2)
-      description: Endpoint publik untuk registrasi mandiri calon partner. Menerima multipart dokumen, NIK 16 digit, kredensial password, dan menghasilkan kode referensi unik `partner_id` (PRT-YYYYMMDD-XXXX). Status awal otomatis `pending`.
+        - "[SPRINT 1] Pendaftaran Partner (M3-US1)"
+      summary: Pendaftaran Mandiri Calon Partner Baru (M3-US1)
+      description: |
+        Endpoint publik untuk pendaftaran mandiri calon partner. Menerima multipart/form-data dokumen legalitas,
+        NIK 16 digit, kredensial password, dan menghasilkan kode referensi unik `partner_id` (PRT-YYYYMMDD-XXXX).
+        Status awal pendaftaran otomatis bernilai `pending`.
+      security: []
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PartnerRegisterRequest'
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PartnerRegisterRequest'
+              type: object
+              required:
+                - nama_usaha
+                - kategori_usaha
+                - deskripsi_usaha
+                - alamat_usaha
+                - nomor_telepon_usaha
+                - email_usaha
+              properties:
+                nama_usaha:
+                  type: string
+                  example: Toko Roti Barokah
+                kategori_usaha:
+                  type: string
+                  enum: [Produk, Jasa]
+                  example: Produk
+                unit_usaha_id:
+                  type: integer
+                  example: 1
+                  description: ID Master Unit Usaha dari Modul 2.
+                deskripsi_usaha:
+                  type: string
+                  example: Menjual aneka roti tawar dan kue basah tradisional.
+                alamat_usaha:
+                  type: string
+                  example: Jl. Lengkong Besar No. 45, Bandung
+                nomor_telepon_usaha:
+                  type: string
+                  example: "081234567890"
+                email_usaha:
+                  type: string
+                  format: email
+                  example: roti.barokah@example.com
+                password:
+                  type: string
+                  format: password
+                  example: RahasiaBudi2026
+                  description: Password untuk akun login partner (Modul 1).
+                penanggung_jawab_nama:
+                  type: string
+                  example: Budi Santoso
+                penanggung_jawab_nik:
+                  type: string
+                  example: "3201234567890001"
+                  description: NIK penanggung jawab tepat 16 digit.
+                tempat_lahir:
+                  type: string
+                  example: Bandung
+                tanggal_lahir:
+                  type: string
+                  format: date
+                  example: "1990-05-15"
+                foto_ktp:
+                  type: string
+                  format: binary
+                  description: File foto KTP (JPG/PNG, maks 5MB).
+                foto_memegang_ktp:
+                  type: string
+                  format: binary
+                  description: File foto selfie memegang KTP (JPG/PNG, maks 5MB).
+                profil_usaha:
+                  type: string
+                  format: binary
+                  description: File foto logo / profil usaha (JPG/PNG, maks 5MB).
       responses:
         '201':
-          description: Data pendaftaran partner berhasil dibuat
+          description: Pendaftaran berhasil, status diset 'pending'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PartnerSingleResponse'
+        '400':
+          description: Request tidak lengkap atau isian tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          description: Email usaha sudah terdaftar (EMAIL_DUPLICATE)
+          description: Email usaha sudah terdaftar
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: Isian tidak lolos validasi NIK / Berkas Foto / Password / Data wajib kosong (VALIDATION_ERROR)
+          description: Galat validasi field khusus (NIK tidak 16 digit, file bukan gambar, format email salah)
           content:
             application/json:
               schema:
@@ -329,17 +364,27 @@ paths:
 
     get:
       tags:
-        - Katalog Partner Terverifikasi (K-06)
-      summary: Daftar Partner Terverifikasi (Kontrak K-06, M3-US2, M3-US4)
-      description: Dipergunakan oleh M5 (Katalog Publik) dan M4 untuk mengambil partner yang berstatus terverifikasi.
+        - "[SPRINT 1] Katalog Partner Terverifikasi (K-06)"
+      summary: Daftar Katalog Partner Terverifikasi (K-06)
+      description: |
+        Endpoint publik etalase partner terverifikasi untuk konsumsi Modul 5 (Katalog Publik) dan verifikasi Modul 4.
+        Hanya mengembalikan partner dengan status `terverifikasi`.
+      security: []
       parameters:
         - name: status
           in: query
           required: false
           schema:
             type: string
-            example: terverifikasi
-          description: Filter status partner (default terverifikasi untuk katalog).
+            enum: [terverifikasi]
+            default: terverifikasi
+          description: Filter status partner (hanya partner terverifikasi yang tampil di etalase publik).
+        - name: unit_usaha_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter berdasarkan ID Unit Usaha (Modul 2).
         - name: page
           in: query
           required: false
@@ -357,7 +402,7 @@ paths:
           required: false
           schema:
             type: string
-          description: Kata kunci pencarian nama usaha.
+          description: Kata kunci pencarian nama atau alamat usaha.
       responses:
         '200':
           description: Berhasil mengambil daftar partner terverifikasi
@@ -369,9 +414,12 @@ paths:
   /partners/{id}:
     get:
       tags:
-        - Status Pendaftaran (M3-US3)
-      summary: Detail dan Status Terkini Pendaftaran Partner (M3-US3, T10, T11)
-      description: Menampilkan status pendaftaran terkini beserta alasan penolakan (rejection_reason) bila status bernilai 'ditolak'. Mendukung pencarian via ID numerik internal (mis. 1) maupun string unik partner_id (mis. PRT-20261108-A9F2).
+        - "[SPRINT 1] Status Pendaftaran (M3-US3)"
+      summary: Detail dan Pelacakan Status Pendaftaran Terkini (M3-US3)
+      description: |
+        Menampilkan status pendaftaran terkini beserta alasan penolakan (rejection_reason) bila status bernilai 'ditolak'.
+        Mendukung pencarian via ID numerik internal (mis. 1) maupun string unik partner_id (mis. PRT-20261108-A9F2).
+      security: []
       parameters:
         - name: id
           in: path
@@ -382,13 +430,205 @@ paths:
           description: ID numerik partner atau kode unik partner_id (PRT-...).
       responses:
         '200':
-          description: Berhasil mengambil detail partner
+          description: Berhasil mengambil detail partner dan status
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PartnerSingleResponse'
         '404':
           description: Data partner tidak ditemukan (NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # =========================================================================
+  # [SPRINT 2] ENDPOINTS
+  # =========================================================================
+
+  /admin/partners:
+    get:
+      tags:
+        - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
+      summary: Daftar Seluruh Partner Terdaftar untuk Administrator (M3-US2 AC 3)
+      description: |
+        Menampilkan seluruh daftar partner yang mendaftar beserta status pendaftarannya (pending, terverifikasi, ditolak, ditangguhkan).
+        Hanya dapat diakses oleh Administrator menggunakan Bearer Token JWT sah dari Modul 1.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, terverifikasi, ditolak, ditangguhkan]
+          description: Filter berdasarkan status pendaftaran partner.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Berhasil mengambil daftar partner untuk verifikasi admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerListResponse'
+        '401':
+          description: Token JWT tidak disertakan atau tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Hak akses ditolak (Bukan role Administrator)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/partners/{id}/verify:
+    post:
+      tags:
+        - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
+      summary: Eksekusi Keputusan Persetujuan atau Penolakan Partner (M3-US2 AC 1, 2, 4)
+      description: |
+        Administrator menyetujui atau menolak pendaftaran partner.
+        - Jika disetujui (action: "approve"): Status partner berubah menjadi `terverifikasi`, dan backend Modul 3
+          secara otomatis memanggil API Modul 1 (POST /api/m1/v1/users) untuk mendaftarkan akun login resmi.
+        - Jika ditolak (action: "reject"): Status partner berubah menjadi `ditolak`, dan field `alasan_penolakan` wajib diisi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+          description: ID numerik partner yang diverifikasi.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminVerifyRequest'
+      responses:
+        '200':
+          description: Keputusan verifikasi partner berhasil diproses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSingleResponse'
+        '400':
+          description: Permintaan tidak valid (misal alasan penolakan belum diisi)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Autentikasi gagal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Akses ditolak (Bukan Administrator)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Partner tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/partners/{id}/suspend:
+    post:
+      tags:
+        - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
+      summary: Penangguhan (Suspend) Partner Terverifikasi (M3-US4 AC 1, 4)
+      description: |
+        Administrator menangguhkan partner bermasalah. Alasan penangguhan wajib disertakan.
+        Partner yang ditangguhkan statusnya berubah menjadi `ditangguhkan` dan otomatis disembunyikan dari katalog Modul 5 serta diblokir dari Modul 4.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSuspendRequest'
+      responses:
+        '200':
+          description: Partner berhasil ditangguhkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSingleResponse'
+        '400':
+          description: Alasan penangguhan belum diisi (M3-US4 AC 4)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Akses ditolak
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/partners/{id}/reactivate:
+    post:
+      tags:
+        - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
+      summary: Mengaktifkan Kembali Partner yang Ditangguhkan (M3-US4 AC 2)
+      description: |
+        Administrator mengaktifkan kembali partner yang sebelumnya ditangguhkan.
+        Status partner kembali menjadi `terverifikasi` dan toko kembali tampil di platform.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Partner berhasil diaktifkan kembali
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSingleResponse'
+        '403':
+          description: Akses ditolak
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Partner tidak ditemukan
           content:
             application/json:
               schema:
