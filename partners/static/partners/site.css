@@ -1064,6 +1064,50 @@ textarea.form-control {
     background: var(--success-solid);
 }
 
+.partner-landing {
+    display: grid;
+    width: min(100%, 834px);
+    min-height: calc(100vh - 96px);
+    grid-template-columns: minmax(0, 1.25fr) minmax(230px, 0.9fr);
+    align-items: center;
+    gap: clamp(32px, 6vw, 72px);
+    margin: 0 auto;
+    padding: 48px 0;
+}
+
+.partner-landing-copy h1 {
+    margin-bottom: var(--space-5);
+    color: var(--text);
+    font: 700 clamp(25px, 3vw, 30px)/1.28 var(--font-head);
+}
+
+.partner-landing-copy h1 span {
+    color: var(--primary);
+}
+
+.partner-landing-copy p {
+    margin-bottom: var(--space-5);
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.partner-landing-copy .button {
+    min-height: 40px;
+    padding: 0 18px;
+}
+
+.partner-landing-art {
+    width: 100%;
+    color: var(--primary);
+}
+
+.partner-landing-art svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 @media (max-width: 1023px) {
     .brand {
         min-width: 0;
@@ -1100,6 +1144,10 @@ textarea.form-control {
         max-width: 72px;
     }
 
+    .partner-landing {
+        min-height: calc(100vh - 88px);
+    }
+
     .main-content {
         padding: var(--space-4);
     }
@@ -1116,6 +1164,29 @@ textarea.form-control {
     .page-heading p {
         font-size: 14px;
         line-height: 22px;
+    }
+
+    .partner-landing {
+        min-height: calc(100vh - 88px);
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        gap: 28px;
+        padding: 36px 0;
+    }
+
+    .partner-landing-copy {
+        width: min(100%, 440px);
+        order: 1;
+    }
+
+    .partner-landing-copy h1 {
+        margin-bottom: var(--space-4);
+        font-size: 26px;
+    }
+
+    .partner-landing-art {
+        width: min(70%, 260px);
+        order: 0;
     }
 
     .welcome-card,
