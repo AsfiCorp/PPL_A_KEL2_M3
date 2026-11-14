@@ -18,9 +18,8 @@
 <form
     class="card registration-form"
     method="post"
+    action="{% url 'partner_ui:partner-registration' %}"
     enctype="multipart/form-data"
-    data-api-url="{% url 'partners:partner-register' %}"
-    data-status-url="{% url 'partner_ui:registration-status' %}"
     novalidate
 >
     {% csrf_token %}

@@ -70,7 +70,6 @@
         });
     }
 
-    let navigateRegistrationStep = null;
     const registrationForm = document.querySelector('.registration-form');
     if (registrationForm) {
         const steps = Array.from(registrationForm.querySelectorAll('.registration-step'));
@@ -101,8 +100,6 @@
             submitButton.hidden = step !== steps.length;
             cancelLink.hidden = step !== 1;
         };
-        navigateRegistrationStep = showStep;
-
         const populateConfirmation = () => {
             const groups = {
                 business: [
@@ -194,109 +191,4 @@
         });
     });
 
-    if (registrationForm) {
-        const summary = registrationForm.querySelector('.form-summary');
-        const summaryErrors = registrationForm.querySelector('.form-summary-errors');
-
-        const clearErrors = () => {
-            registrationForm.querySelectorAll('.field-errors').forEach((container) => {
-                container.replaceChildren();
-            });
-            registrationForm.querySelectorAll('[aria-invalid="true"]').forEach((field) => {
-                field.removeAttribute('aria-invalid');
-                field.removeAttribute('aria-describedby');
-            });
-            summary.hidden = true;
-            summaryErrors.replaceChildren();
-        };
-
-        const showErrors = (errors) => {
-            const generalErrors = [];
-            let firstErrorStep = null;
-            Object.entries(errors).forEach(([fieldName, messages]) => {
-                const container = registrationForm.querySelector(`[data-field-errors="${fieldName}"]`);
-                const field = registrationForm.elements.namedItem(fieldName);
-                const errorMessages = Array.isArray(messages) ? messages : [messages];
-
-                if (!container || !field || typeof field === 'string') {
-                    generalErrors.push(...errorMessages.map(String));
-                    return;
-                }
-
-                field.setAttribute('aria-invalid', 'true');
-                firstErrorStep = firstErrorStep || field.closest('.registration-step');
-                const errorId = `${field.id}-api-error`;
-                field.setAttribute('aria-describedby', errorId);
-                errorMessages.forEach((message) => {
-                    const error = document.createElement('p');
-                    error.className = 'field-error';
-                    error.id = errorId;
-                    error.setAttribute('role', 'alert');
-                    error.textContent = String(message);
-                    container.append(error);
-                });
-            });
-
-            if (generalErrors.length) {
-                generalErrors.forEach((message) => {
-                    const item = document.createElement('li');
-                    item.textContent = message;
-                    summaryErrors.append(item);
-                });
-                summary.hidden = false;
-            }
-            if (firstErrorStep) {
-                const step = Number(firstErrorStep.dataset.step);
-                if (step && navigateRegistrationStep) navigateRegistrationStep(step);
-            }
-        };
-
-        registrationForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            clearErrors();
-            if (submitButton) {
-                submitButton.disabled = true;
-                submitButton.textContent = 'Mengirim…';
-            }
-
-            let redirecting = false;
-            try {
-                const response = await fetch(registrationForm.dataset.apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-CSRFToken': registrationForm.elements.namedItem('csrfmiddlewaretoken').value,
-                    },
-                    body: new FormData(registrationForm),
-                    credentials: 'same-origin',
-                });
-                const result = await response.json().catch(() => null);
-
-                if (response.ok && result?.status === 'success' && result.data?.id) {
-                    redirecting = true;
-                    window.location.assign(registrationForm.dataset.statusUrl);
-                    return;
-                }
-
-                if (result?.errors && typeof result.errors === 'object') {
-                    showErrors(result.errors);
-                } else {
-                    showErrors({
-                        __all__: [
-                            result?.message || 'Server memberikan respons yang tidak dapat diproses. Silakan coba lagi.',
-                        ],
-                    });
-                }
-            } catch {
-                showErrors({
-                    __all__: ['Tidak dapat terhubung ke server. Periksa koneksi Anda, lalu coba lagi.'],
-                });
-            } finally {
-                if (submitButton && !redirecting) {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Kirim Pendaftaran';
-                }
-            }
-        });
-    }
 })();
