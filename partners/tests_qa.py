@@ -1,3 +1,4 @@
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -228,3 +229,88 @@ class TestM3US1EnhancedQA(APITestCase):
         self.assertEqual(res.data['data']['rejection_reason'], "Dokumen buram")
         self.assertNotIn('password_hash', res.data['data'])
 
+
+
+
+class TestM3US1FormStepperAndStatusQA(TestCase):
+    """
+    Test suite resmi QA untuk issue PRO-225 (T6.2) & PRO-229 (T12.1):
+    Slicing Form Stepper & Halaman Status Pendaftaran Partner.
+    """
+
+    def setUp(self):
+        self.register_url = reverse('partner_ui:partner-registration')
+        self.status_url = reverse('partner_ui:registration-status')
+        self.store_url = reverse('partner_ui:my-store')
+        self.valid_payload = {
+            'nama_usaha': 'Warung Stepper QA',
+            'kategori_usaha': 'Produk',
+            'deskripsi_usaha': 'Warung kuliner khas Sunda',
+            'alamat_usaha': 'Jl. Dipati Ukur No. 100, Bandung',
+            'nomor_telepon_usaha': '081234567899',
+            'email_usaha': 'warung.stepper@qa.test',
+        }
+
+    def test_t6_2_stepper_form_renders_all_sections(self):
+        """Memastikan form stepper memuat 4 seksi (Info Usaha, Dokumen, Akun, Konfirmasi)."""
+        res = self.client.get(self.register_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'class="card registration-form"')
+        self.assertContains(res, 'data-step="1"')
+        self.assertContains(res, 'data-step="2"')
+        self.assertContains(res, 'data-step="3"')
+        self.assertContains(res, 'data-step="4"')
+
+    def test_t12_1_pending_status_locks_registration_and_redirects(self):
+        """
+        Memastikan partner dengan status 'pending' tidak dapat membuka kembali
+        halaman registrasi dan langsung dialihkan ke halaman status (kunci navigasi pending).
+        """
+        partner = Partner.objects.create(
+            nama_usaha='Pending Store QA',
+            kategori_usaha=Partner.KategoriUsaha.PRODUK,
+            deskripsi_usaha='Toko dalam antrian verifikasi',
+            alamat_usaha='Jl. Riau No. 50',
+            nomor_telepon_usaha='081122334455',
+            email_usaha='pending.qa@example.com',
+            status=Partner.StatusPendaftaran.PENDING
+        )
+        session = self.client.session
+        session['partner_application_id'] = partner.pk
+        session.save()
+
+        # Coba buka form registrasi -> harus diarahkan ke status
+        res = self.client.get(self.register_url)
+        self.assertRedirects(res, self.status_url)
+
+        # Cek halaman status mengunci navigasi
+        res_status = self.client.get(self.status_url)
+        self.assertEqual(res_status.status_code, 200)
+        self.assertContains(res_status, 'Menunggu persetujuan')
+        self.assertContains(res_status, 'data-registration-status="pending"')
+
+    def test_t12_1_rejected_status_shows_retry_button(self):
+        """
+        Memastikan partner dengan status 'ditolak' menampilkan alasan penolakan
+        dan tombol 'Coba Mendaftar Kembali' ke halaman formulir.
+        """
+        partner = Partner.objects.create(
+            nama_usaha='Rejected Store QA',
+            kategori_usaha=Partner.KategoriUsaha.JASA,
+            deskripsi_usaha='Jasa servis elektronik',
+            alamat_usaha='Jl. Sunda No. 20',
+            nomor_telepon_usaha='081199887766',
+            email_usaha='rejected.qa@example.com',
+            status=Partner.StatusPendaftaran.DITOLAK,
+            alasan_penolakan='Foto KTP buram dan tidak terbaca.'
+        )
+        session = self.client.session
+        session['partner_application_id'] = partner.pk
+        session.save()
+
+        res = self.client.get(self.status_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Pendaftaran Partner Ditolak')
+        self.assertContains(res, 'Foto KTP buram dan tidak terbaca.')
+        self.assertContains(res, 'Coba Mendaftar Kembali')
+        self.assertContains(res, 'href="/pendaftaran-partner/"')
