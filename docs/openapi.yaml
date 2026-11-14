@@ -239,7 +239,7 @@ components:
         alasan_penolakan:
           type: string
           example: Foto KTP tidak jelas dan NIK tidak valid.
-          description: Wajib diisi jika action bernilai reject (M3-US2 AC 4)
+          description: Wajib diisi jika action bernilai reject (M3-US2)
 
     AdminSuspendRequest:
       type: object
@@ -249,7 +249,7 @@ components:
         alasan_penangguhan:
           type: string
           example: Terdapat keluhan berulang terkait kualitas layanan.
-          description: Alasan penangguhan partner (wajib diisi sesuai M3-US4 AC 4)
+          description: Alasan penangguhan partner (wajib diisi sesuai M3-US4)
 
 paths:
 
@@ -450,7 +450,7 @@ paths:
     get:
       tags:
         - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
-      summary: Daftar Seluruh Partner Terdaftar untuk Administrator (M3-US2 AC 3)
+      summary: Daftar Seluruh Partner Terdaftar untuk Administrator (M3-US2)
       description: |
         Menampilkan seluruh daftar partner yang mendaftar beserta status pendaftarannya (pending, terverifikasi, ditolak, ditangguhkan).
         Hanya dapat diakses oleh Administrator menggunakan Bearer Token JWT sah dari Modul 1.
@@ -500,7 +500,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
-      summary: Eksekusi Keputusan Persetujuan atau Penolakan Partner (M3-US2 AC 1, 2, 4)
+      summary: Eksekusi Keputusan Persetujuan atau Penolakan Partner (M3-US2)
       description: |
         Administrator menyetujui atau menolak pendaftaran partner.
         - Jika disetujui (action: "approve"): Status partner berubah menjadi `terverifikasi`, dan backend Modul 3
@@ -558,7 +558,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
-      summary: Penangguhan (Suspend) Partner Terverifikasi (M3-US4 AC 1, 4)
+      summary: Penangguhan (Suspend) Partner Terverifikasi (M3-US4)
       description: |
         Administrator menangguhkan partner bermasalah. Alasan penangguhan wajib disertakan.
         Partner yang ditangguhkan statusnya berubah menjadi `ditangguhkan` dan otomatis disembunyikan dari katalog Modul 5 serta diblokir dari Modul 4.
@@ -585,7 +585,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PartnerSingleResponse'
         '400':
-          description: Alasan penangguhan belum diisi (M3-US4 AC 4)
+          description: Alasan penangguhan belum diisi (M3-US4)
           content:
             application/json:
               schema:
@@ -601,7 +601,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
-      summary: Mengaktifkan Kembali Partner yang Ditangguhkan (M3-US4 AC 2)
+      summary: Mengaktifkan Kembali Partner yang Ditangguhkan (M3-US4)
       description: |
         Administrator mengaktifkan kembali partner yang sebelumnya ditangguhkan.
         Status partner kembali menjadi `terverifikasi` dan toko kembali tampil di platform.

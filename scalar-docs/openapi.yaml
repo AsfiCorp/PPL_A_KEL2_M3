@@ -428,7 +428,7 @@ paths:
     get:
       tags:
         - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
-      summary: Daftar Seluruh Partner untuk Administrator (M3-US2 AC 3)
+      summary: Daftar Seluruh Partner untuk Administrator (M3-US2)
       description: Menampilkan seluruh daftar partner yang mendaftar beserta status pendaftarannya untuk ditinjau oleh Admin.
       security:
         - bearerAuth: []
@@ -475,7 +475,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Verifikasi Pendaftaran Partner (M3-US2)"
-      summary: Eksekusi Keputusan Persetujuan atau Penolakan Partner (M3-US2 AC 1, 2, 4)
+      summary: Eksekusi Keputusan Persetujuan atau Penolakan Partner (M3-US2)
       description: Administrator menyetujui (approve) atau menolak (reject) pendaftaran partner. Jika disetujui, akun otomatis disinkronkan ke Modul 1. Jika ditolak, alasan wajib diisi.
       security:
         - bearerAuth: []
@@ -528,7 +528,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
-      summary: Penangguhan (Suspend) Partner Terverifikasi (M3-US4 AC 1, 4)
+      summary: Penangguhan (Suspend) Partner Terverifikasi (M3-US4)
       description: Administrator membekukan akun partner bermasalah dengan alasan wajib. Toko disembunyikan dari katalog Modul 5 dan hak jual di Modul 4 dinonaktifkan.
       security:
         - bearerAuth: []
@@ -569,7 +569,7 @@ paths:
     post:
       tags:
         - "[SPRINT 2] Tata Kelola & Penangguhan Partner (M3-US4)"
-      summary: Mengaktifkan Kembali Partner yang Ditangguhkan (M3-US4 AC 2)
+      summary: Mengaktifkan Kembali Partner yang Ditangguhkan (M3-US4)
       description: Administrator mengaktifkan kembali partner yang telah menyelesaikan masalahnya sehingga kembali tampil di platform.
       security:
         - bearerAuth: []
