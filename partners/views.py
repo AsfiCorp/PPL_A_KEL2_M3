@@ -33,7 +33,7 @@ def my_store(request):
             {
                 'active_page': 'my_store',
                 'partner': partner,
-                'submitted_at': timezone.localtime(partner.created_at),
+                'submitted_at': timezone.localtime(partner.created_at) if partner.created_at else None,
             },
         )
 
@@ -124,7 +124,7 @@ def registration_status(request):
         {
             'active_page': 'my_store',
             'partner': partner,
-            'submitted_at': timezone.localtime(partner.created_at),
+            'submitted_at': timezone.localtime(partner.created_at) if partner.created_at else None,
         },
     )
 

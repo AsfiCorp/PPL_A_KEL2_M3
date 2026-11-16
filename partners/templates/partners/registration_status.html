@@ -104,7 +104,7 @@
             </div>
             <div class="detail-row">
                 <dt>Tanggal pengajuan</dt>
-                <dd>{{ submitted_at|date:"j M Y"|default:partner.created_at|date:"j M Y"|default:'—' }}</dd>
+                <dd data-field="created_at">{% if submitted_at %}{{ submitted_at|date:"d/m/Y" }}{% elif partner.created_at %}{{ partner.created_at|date:"d/m/Y" }}{% else %}—{% endif %}</dd>
             </div>
             {% if partner.status == 'ditolak' or partner.status == 'reject' %}
                 <div class="detail-row">

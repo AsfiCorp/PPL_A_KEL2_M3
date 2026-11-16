@@ -459,6 +459,20 @@
                     const statusVal = data.status; // pending, ditolak, terverifikasi
                     statusContainer.setAttribute('data-registration-status', statusVal);
 
+                    // Perbarui tanggal pengajuan jika data API ada dan elemen bernilai kosong atau '—'
+                    if (data.created_at) {
+                        const dateEl = statusContainer.querySelector('[data-field="created_at"]');
+                        if (dateEl && (dateEl.textContent.trim() === '—' || !dateEl.textContent.trim())) {
+                            const d = new Date(data.created_at);
+                            if (!isNaN(d.getTime())) {
+                                const day = String(d.getDate()).padStart(2, '0');
+                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                const year = d.getFullYear();
+                                dateEl.textContent = `${day}/${month}/${year}`;
+                            }
+                        }
+                    }
+
                     // Perbarui info detail jika berubah
                     const statusTextEl = statusContainer.querySelector('.detail-row dd .status-badge');
                     if (statusTextEl) {
