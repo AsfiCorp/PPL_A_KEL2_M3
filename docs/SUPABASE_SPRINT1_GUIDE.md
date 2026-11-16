@@ -1,108 +1,95 @@
-# Panduan Integrasi Supabase - Modul 3 (Sprint 1)
+# Panduan Integrasi Supabase - Modul 3 (Araya M3 - Sprint 1)
 
-Dokumentasi ini menjelaskan cara menggunakan **Supabase PostgreSQL** sebagai basis data terpusat Modul 3 agar tim **Frontend** dapat langsung mengonsumsi data secara mandiri tanpa tergantung pada server lokal backend, serta cara **Backend Django** terhubung ke basis data yang sama.
-
----
-
-## 1. Lingkup Data Sprint 1
-Sesuai batasan Sprint 1, skema dan data Supabase hanya mencakup:
-- **M3-US1**: Pendaftaran Mandiri Calon Partner Baru.
-- **M3-US3**: Detail dan Pelacakan Status Pendaftaran (Pending / Terverifikasi / Ditolak).
-- **K-06**: Penyediaan Data Katalog Partner Terverifikasi untuk Modul 5 dan Modul 4.
+Proyek Supabase resmi untuk **Modul 3 (Araya M3)** telah berhasil dibuat dan terkonfigurasi di *cloud* untuk kebutuhan **Sprint 1**. Basis data ini dapat langsung diakses oleh tim **Frontend** via REST API / SDK Supabase maupun oleh **Backend Django**.
 
 ---
 
-## 2. Setup Instan di Supabase (Untuk Frontend & Database)
+## 1. Kredensial Proyek Supabase (Live)
 
-1. Buka dashboard proyek Supabase Anda di [supabase.com](https://supabase.com).
-2. Masuk ke menu **SQL Editor** pada panel navigasi kiri.
-3. Buka berkas [`docs/supabase_sprint1_setup.sql`](./supabase_sprint1_setup.sql), salin seluruh isinya, lalu tempelkan ke SQL Editor.
-4. Klik **Run**.
-5. Tabel `partners` otomatis terbentuk lengkap dengan:
-   - Struktur kolom Sprint 1.
-   - Aturan keamanan **Row Level Security (RLS)** untuk publik (`anon`).
-   - 4 baris data uji (*seed data*): 2 toko aktif (*terverifikasi*), 1 toko *pending*, dan 1 toko *ditolak*.
+| Parameter | Nilai Resmi |
+| :--- | :--- |
+| **Nama Proyek** | `Araya M3` |
+| **Project Ref** | `ahemuctnwslwikbqyyrv` |
+| **Dashboard URL** | [supabase.com/dashboard/project/ahemuctnwslwikbqyyrv](https://supabase.com/dashboard/project/ahemuctnwslwikbqyyrv) |
+| **Region** | `ap-southeast-1` (Singapore) |
+| **API URL (Project URL)** | `https://ahemuctnwslwikbqyyrv.supabase.co` |
+| **Anon Public Key** | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZW11Y3Rud3Nsd2lrYnF5eXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MTAzNjUsImV4cCI6MjExMDM4NjM2NX0.e0sLYg9uI7AMnRYgfxq_7T284lo3KgHDuPuiVgeGzGA` |
+| **Database Host** | `aws-0-ap-southeast-1.pooler.supabase.com` (Port `6543`) |
+| **Database User** | `postgres.ahemuctnwslwikbqyyrv` |
+| **Database Name** | `postgres` |
 
 ---
 
-## 3. Contoh Konsumsi Data oleh Frontend (`@supabase/supabase-js`)
+## 2. Cara Pakai Langsung untuk Tim Frontend
 
-Frontend dapat langsung memasang SDK Supabase:
+Frontend dapat langsung membaca dan menulis data ke tabel `partners` tanpa perlu menjalankan backend Django lokal.
+
+### Pemasangan SDK Supabase
 ```bash
 npm install @supabase/supabase-js
 ```
 
-Inisialisasi klien:
+### Inisialisasi Klien (Frontend)
 ```javascript
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; // atau VITE_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_URL = 'https://ahemuctnwslwikbqyyrv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZW11Y3Rud3Nsd2lrYnF5eXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4MTAzNjUsImV4cCI6MjExMDM4NjM2NX0.e0sLYg9uI7AMnRYgfxq_7T284lo3KgHDuPuiVgeGzGA';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ```
 
 ### A. Mengambil Katalog Partner Terverifikasi (Kontrak K-06)
 ```javascript
-// Dipanggil oleh Frontend Modul 5 / Halaman Katalog
-const { data: catalog, error } = await supabase
+// Mengambil toko aktif untuk etalase publik Modul 5
+const { data: partners, error } = await supabase
   .from('partners')
-  .select('*')
+  .select('partner_id, nama_usaha, kategori_usaha, deskripsi_usaha, alamat_usaha, nomor_telepon_usaha, email_usaha')
   .eq('status', 'terverifikasi')
   .order('created_at', { ascending: false });
 
-console.log('Katalog Toko Terverifikasi:', catalog);
+console.log('Katalog Toko:', partners);
 ```
 
-### B. Pelacakan Status Pendaftaran (M3-US3)
+### B. Pelacakan Status Pendaftaran Mandiri (M3-US3)
 ```javascript
-// Pengguna memasukkan kode partner_id (contoh: PRT-20261108-C303)
-const { data: partner, error } = await supabase
+// Pelacakan status pendaftaran berdasarkan partner_id
+const { data: application, error } = await supabase
   .from('partners')
   .select('partner_id, nama_usaha, status, alasan_penolakan, created_at')
   .eq('partner_id', 'PRT-20261108-C303')
   .single();
 
-if (partner) {
-  console.log(`Status Pengajuan: ${partner.status}`);
-  if (partner.status === 'ditolak') {
-    console.log(`Alasan Penolakan: ${partner.alasan_penolakan}`);
-  }
-}
+console.log('Status Pendaftaran:', application.status);
 ```
 
 ### C. Pendaftaran Partner Baru (M3-US1)
 ```javascript
-const newPartner = {
+const newApplication = {
   partner_id: `PRT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(16).substring(2, 6).toUpperCase()}`,
-  nama_usaha: 'Toko Baru Saya',
-  kategori_usaha: 'Produk',
-  deskripsi_usaha: 'Menjual barang kebutuhan pokok berkualitas',
-  alamat_usaha: 'Jl. Merdeka No. 1, Bandung',
-  nomor_telepon_usaha: '081234567899',
+  nama_usaha: 'Toko Baru Mandiri',
+  kategori_usaha: 'Produk', // 'Produk' atau 'Jasa'
+  deskripsi_usaha: 'Menjual aneka sembako murah',
+  alamat_usaha: 'Jl. Merdeka No. 12, Bandung',
+  nomor_telepon_usaha: '081234567800',
   email_usaha: 'tokobaru@example.com',
-  status: 'pending' // Wajib pending sesuai kebijakan RLS
+  status: 'pending' // Wajib 'pending' sesuai aturan RLS
 };
 
 const { data, error } = await supabase
   .from('partners')
-  .insert([newPartner]);
+  .insert([newApplication]);
 ```
 
 ---
 
-## 4. Menghubungkan Backend Django ke Supabase
+## 3. Cara Menghubungkan Backend Django
 
-Backend Django Modul 3 telah dilengkapi dengan adapter `dj-database-url` dan `psycopg2-binary`.
+Backend Django Modul 3 telah dikonfigurasi menggunakan `dj-database-url`.
 
-1. Di Supabase, masuk ke **Project Settings** > **Database**.
-2. Cari bagian **Connection string** > pilih tab **URI**.
-3. Salin URI tersebut, lalu set variabel lingkungan `DATABASE_URL` di lokal atau hosting backend (PythonAnywhere):
-   ```bash
-   export DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-   ```
-4. Jalankan migrasi:
-   ```bash
-   ./venv/bin/python manage.py migrate
-   ```
-5. Jika variabel `DATABASE_URL` tidak diset, Django secara otomatis tetap memakai SQLite lokal (`db.sqlite3`) sehingga pengujian unit test dan pengembangan offline tetap 100% aman.
+Cukup set variabel lingkungan sebelum menjalankan server (atau pasang di dashboard PythonAnywhere):
+```bash
+export DATABASE_URL="postgresql://postgres.ahemuctnwslwikbqyyrv:arayamodul3@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
+```
+
+Jika variabel `DATABASE_URL` tidak diset, backend secara otomatis beralih ke SQLite lokal (`db.sqlite3`) untuk memastikan unit test tetap berjalan cepat dan offline.
