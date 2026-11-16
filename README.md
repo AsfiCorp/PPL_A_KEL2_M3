@@ -229,4 +229,4 @@ Atau via Django runner:
 ```bash
 ./venv/bin/python manage.py test partners -v 2
 ```
-Seluruh 49 test suite (unit tests, UI stepper tests, dan QA acceptance tests) berjalan otomatis dengan status kelulusan 100%.
+Seluruh 53 test suite (unit tests, UI stepper & landing page tests, dan QA acceptance tests) berjalan otomatis dengan status kelulusan 100%.
