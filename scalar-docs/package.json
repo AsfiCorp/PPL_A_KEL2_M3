@@ -1,7 +1,7 @@
 {
   "name": "araya-hub-m3-api-docs",
   "version": "1.0.0",
-  "description": "Scalar API Reference Documentation for Modul 3 Araya Hub",
+  "description": "API Reference Documentation for Modul 3 Araya Hub",
   "private": true,
   "scripts": {
     "start": "npx serve ."
