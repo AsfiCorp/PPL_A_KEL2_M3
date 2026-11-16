@@ -462,12 +462,19 @@
                     // Perbarui info detail jika berubah
                     const statusTextEl = statusContainer.querySelector('.detail-row dd .status-badge');
                     if (statusTextEl) {
-                        statusTextEl.className = `status-badge status-${statusVal === 'ditolak' ? 'danger' : statusVal === 'terverifikasi' ? 'success' : 'pending'}`;
+                        const isSuccess = ['terverifikasi', 'approve', 'active'].includes(statusVal);
+                        const isDanger = ['ditolak', 'reject'].includes(statusVal);
+                        const badgeClass = isDanger ? 'danger' : isSuccess ? 'success' : 'pending';
+                        statusTextEl.className = `status-badge status-${badgeClass}`;
                         const labelMap = {
                             'pending': 'Menunggu Persetujuan',
                             'terverifikasi': 'Terverifikasi',
+                            'approve': 'Disetujui',
+                            'active': 'Aktif',
                             'ditolak': 'Ditolak',
-                            'ditangguhkan': 'Ditangguhkan'
+                            'reject': 'Ditolak',
+                            'ditangguhkan': 'Ditangguhkan',
+                            'suspend': 'Ditangguhkan'
                         };
                         statusTextEl.innerHTML = `<span class="status-dot"></span>${labelMap[statusVal] || statusVal}`;
                     }

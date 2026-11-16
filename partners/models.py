@@ -17,6 +17,11 @@ class Partner(models.Model):
 
     class StatusPendaftaran(models.TextChoices):
         PENDING = 'pending', 'Menunggu Persetujuan'
+        APPROVE = 'approve', 'Disetujui'
+        ACTIVE = 'active', 'Aktif'
+        REJECT = 'reject', 'Ditolak'
+        SUSPEND = 'suspend', 'Ditangguhkan'
+        # Alias kompatibilitas
         TERVERIFIKASI = 'terverifikasi', 'Terverifikasi'
         DITOLAK = 'ditolak', 'Ditolak'
         DITANGGUHKAN = 'ditangguhkan', 'Ditangguhkan'
@@ -98,13 +103,44 @@ class Partner(models.Model):
         verbose_name_plural = 'Partners'
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            orig = Partner.objects.filter(pk=self.pk).values('status').first()
+            if orig:
+                old_status = orig['status']
+
         if not self.partner_id:
             while True:
                 candidate = generate_partner_id()
                 if not Partner.objects.filter(partner_id=candidate).exists():
                     self.partner_id = candidate
                     break
+
         super().save(*args, **kwargs)
+
+        # Otomatis catat ke riwayat PartnerStatusLog
+        if is_new:
+            PartnerStatusLog.objects.create(
+                partner=self,
+                status_sebelum='none',
+                status_sesudah=self.status,
+                aksi='REGISTRASI_BARU',
+                alasan='Pendaftaran partner baru oleh mitra'
+            )
+        elif old_status and old_status != self.status:
+            alasan_text = (
+                self.alasan_penolakan if self.status in ['ditolak', 'reject']
+                else self.alasan_penangguhan if self.status in ['ditangguhkan', 'suspend']
+                else 'Perubahan status pendaftaran oleh sistem/admin'
+            )
+            PartnerStatusLog.objects.create(
+                partner=self,
+                status_sebelum=old_status,
+                status_sesudah=self.status,
+                aksi=f'STATUS_{self.status.upper()}',
+                alasan=alasan_text
+            )
 
     def __str__(self):
         return f"{self.nama_usaha} [{self.partner_id}] ({self.get_status_display()})"

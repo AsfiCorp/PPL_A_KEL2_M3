@@ -34,7 +34,7 @@
                 <span class="status-notice-icon" aria-hidden="true">i</span>
                 <p>Tim Araya Business Hub akan meninjau data pendaftaran Anda. Silakan cek kembali halaman ini secara berkala untuk mengetahui perkembangan status pendaftaran.</p>
             </div>
-        {% elif partner.status == 'ditolak' %}
+        {% elif partner.status == 'ditolak' or partner.status == 'reject' %}
             <div class="status-icon" aria-hidden="true">
                 <svg viewBox="0 0 48 48" fill="none">
                     <circle cx="24" cy="24" r="21" stroke="#0F172A" stroke-width="2.5"/>
@@ -43,7 +43,7 @@
             </div>
             <h2>Pendaftaran Partner Ditolak</h2>
             <p>Mohon maaf, pendaftaran usaha Anda belum dapat disetujui karena belum memenuhi persyaratan.</p>
-        {% elif partner.status == 'terverifikasi' %}
+        {% elif partner.status == 'terverifikasi' or partner.status == 'approve' or partner.status == 'active' %}
             <div class="status-icon" aria-hidden="true">
                 <svg viewBox="0 0 48 48" fill="none">
                     <circle cx="24" cy="24" r="21" stroke="#0F172A" stroke-width="2.5"/>
@@ -52,6 +52,15 @@
             </div>
             <h2>Pendaftaran Partner Berhasil Diverifikasi</h2>
             <p>Selamat! Pendaftaran usaha Anda telah disetujui. Silakan login ke akun Araya Business Hub untuk mulai menggunakan layanan sebagai Partner.</p>
+        {% elif partner.status == 'ditangguhkan' or partner.status == 'suspend' %}
+            <div class="status-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="21" stroke="#0F172A" stroke-width="2.5"/>
+                    <path d="M24 14v10m0 6h.01" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2>Pendaftaran Ditangguhkan</h2>
+            <p>Status pendaftaran usaha Anda telah diperbarui oleh admin.</p>
         {% else %}
             <div class="status-icon" aria-hidden="true">
                 <svg viewBox="0 0 48 48" fill="none">
@@ -72,9 +81,9 @@
                 <dd>
                     {% if partner.status == 'pending' or not partner.status %}
                         <span class="status-badge status-pending"><span class="status-dot"></span>Menunggu persetujuan</span>
-                    {% elif partner.status == 'terverifikasi' %}
+                    {% elif partner.status == 'terverifikasi' or partner.status == 'approve' or partner.status == 'active' %}
                         <span class="status-badge status-success"><span class="status-dot"></span>Terverifikasi</span>
-                    {% elif partner.status == 'ditolak' %}
+                    {% elif partner.status == 'ditolak' or partner.status == 'reject' %}
                         <span class="status-badge status-danger"><span class="status-dot"></span>Ditolak</span>
                     {% else %}
                         <span class="status-badge status-neutral"><span class="status-dot"></span>Ditangguhkan</span>
@@ -97,7 +106,7 @@
                 <dt>Tanggal pengajuan</dt>
                 <dd>{{ submitted_at|date:"j M Y"|default:partner.created_at|date:"j M Y"|default:'—' }}</dd>
             </div>
-            {% if partner.status == 'ditolak' %}
+            {% if partner.status == 'ditolak' or partner.status == 'reject' %}
                 <div class="detail-row">
                     <dt>Alasan penolakan</dt>
                     <dd>{{ partner.alasan_penolakan|default:'Dokumen legalitas tidak lengkap.' }}</dd>
@@ -106,11 +115,11 @@
         </dl>
     </div>
 
-    {% if partner.status == 'ditolak' %}
+    {% if partner.status == 'ditolak' or partner.status == 'reject' %}
         <div class="status-actions">
             <a class="button button-primary" href="{% url 'partner_ui:partner-registration' %}">Coba Mendaftar Kembali</a>
         </div>
-    {% elif partner.status == 'terverifikasi' %}
+    {% elif partner.status == 'terverifikasi' or partner.status == 'approve' or partner.status == 'active' %}
         <div class="status-actions">
             <a class="button button-primary" href="https://ppl-m1-fe.vercel.app/">Login ke Akun</a>
         </div>

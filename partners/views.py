@@ -180,7 +180,14 @@ class PartnerListCreateView(APIView):
         status_filter = request.GET.get('status', 'terverifikasi').strip()
         queryset = Partner.objects.all()
         if status_filter:
-            queryset = queryset.filter(status=status_filter)
+            if status_filter in ['terverifikasi', 'approve', 'active']:
+                queryset = queryset.filter(status__in=['terverifikasi', 'approve', 'active'])
+            elif status_filter in ['ditolak', 'reject']:
+                queryset = queryset.filter(status__in=['ditolak', 'reject'])
+            elif status_filter in ['ditangguhkan', 'suspend']:
+                queryset = queryset.filter(status__in=['ditangguhkan', 'suspend'])
+            else:
+                queryset = queryset.filter(status=status_filter)
 
         search_query = request.GET.get('q', '').strip()
         if search_query:
