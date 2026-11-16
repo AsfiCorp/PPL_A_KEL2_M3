@@ -212,11 +212,11 @@ cd PPL_A_KEL2_M3
 ```
 
 ### Tautan Deployment Produksi Live (Vercel & Supabase):
-* **Web Portal & UI Pendaftaran**: [https://araya-m3.vercel.app](https://araya-m3.vercel.app)
-* **Form Pendaftaran Mitra (Stepper)**: [https://araya-m3.vercel.app/pendaftaran-partner/](https://araya-m3.vercel.app/pendaftaran-partner/)
-* **Katalog Mitra (Kontrak K-06)**: [https://araya-m3.vercel.app/api/m3/v1/partners/?status=terverifikasi](https://araya-m3.vercel.app/api/m3/v1/partners/?status=terverifikasi)
-* **Status Pendaftaran Mitra (M3-US3)**: [https://araya-m3.vercel.app/api/m3/v1/partners/PRT-20261108-D404/](https://araya-m3.vercel.app/api/m3/v1/partners/PRT-20261108-D404/)
-* **Dokumentasi Interaktif Swagger UI**: [https://araya-m3.vercel.app/api/m3/v1/docs/](https://araya-m3.vercel.app/api/m3/v1/docs/)
+* **Web Portal & UI Pendaftaran**: [https://araya-business-hub-m3.vercel.app](https://araya-business-hub-m3.vercel.app) (atau [https://araya-m3.vercel.app](https://araya-m3.vercel.app))
+* **Form Pendaftaran Mitra (Stepper)**: [https://araya-business-hub-m3.vercel.app/pendaftaran-partner/](https://araya-business-hub-m3.vercel.app/pendaftaran-partner/)
+* **Katalog Mitra (Kontrak K-06)**: [https://araya-business-hub-m3.vercel.app/api/m3/v1/partners/?status=terverifikasi](https://araya-business-hub-m3.vercel.app/api/m3/v1/partners/?status=terverifikasi)
+* **Status Pendaftaran Mitra (M3-US3)**: [https://araya-business-hub-m3.vercel.app/api/m3/v1/partners/PRT-20261108-D404/](https://araya-business-hub-m3.vercel.app/api/m3/v1/partners/PRT-20261108-D404/)
+* **Dokumentasi Interaktif Swagger UI**: [https://araya-business-hub-m3.vercel.app/api/m3/v1/docs/](https://araya-business-hub-m3.vercel.app/api/m3/v1/docs/)
 * **Dokumentasi Interaktif Scalar API**: [https://araya-m3-api-docs.vercel.app](https://araya-m3-api-docs.vercel.app)
 * **Supabase Database & Storage**: PostgreSQL Pooler `aws-1-ap-southeast-1.pooler.supabase.com:6543`, Bucket `partner-documents`.
 
