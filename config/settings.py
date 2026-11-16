@@ -17,17 +17,27 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Baca variabel lingkungan dari .env lokal jika tersedia
+env_file = BASE_DIR / '.env'
+if env_file.exists():
+    with open(env_file, 'r', encoding='utf-8') as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-bv!_#!91bc4#t$@fah4r_-vtpah_)q)8t9lr%u8m%q+-@*@o3e'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-bv!_#!91bc4#t$@fah4r_-vtpah_)q)8t9lr%u8m%q+-@*@o3e')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -49,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,11 +88,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
+import sys
+
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
+if 'test' in sys.argv:
+    # Saat menjalankan automated test, selalu gunakan basis data in-memory SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
@@ -132,11 +153,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = "/media/"
+if os.environ.get("VERCEL"):
+    MEDIA_ROOT = "/tmp/media"
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
+
+DEFAULT_FILE_STORAGE = "partners.storage.SupabaseStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": "partners.storage.SupabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 
 # Email
