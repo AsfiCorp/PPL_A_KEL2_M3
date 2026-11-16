@@ -151,6 +151,7 @@
                     ['Email Usaha', 'email_usaha'],
                     ['Alamat Usaha', 'alamat_usaha'],
                     ['Deskripsi Usaha', 'deskripsi_usaha'],
+                    ['Profil Usaha', 'profil_usaha', false, true],
                 ],
                 responsible: [
                     ['Nama Lengkap', 'nama_lengkap'],
@@ -216,13 +217,28 @@
             const formData = new FormData(registrationForm);
             formData.set('complete_registration', 'true');
 
-            // Petakan alias input file agar DRF serializer mengenali dengan sempurna
-            const ktpFile = registrationForm.elements.namedItem('ktp')?.files?.[0];
-            const selfieFile = registrationForm.elements.namedItem('foto_pemegang_ktp')?.files?.[0];
-            if (ktpFile) {
+            // Handle file inputs secara eksplisit
+            const profilInput = registrationForm.elements.namedItem('profil_usaha');
+            const ktpInput = registrationForm.elements.namedItem('ktp');
+            const selfieInput = registrationForm.elements.namedItem('foto_pemegang_ktp');
+
+            const profilFile = profilInput?.files?.[0];
+            const ktpFile = ktpInput?.files?.[0];
+            const selfieFile = selfieInput?.files?.[0];
+
+            if (profilFile && profilFile.size > 0) {
+                formData.set('profil_usaha', profilFile);
+            } else {
+                formData.delete('profil_usaha');
+            }
+
+            if (ktpFile && ktpFile.size > 0) {
+                formData.set('ktp', ktpFile);
                 formData.set('foto_ktp', ktpFile);
             }
-            if (selfieFile) {
+
+            if (selfieFile && selfieFile.size > 0) {
+                formData.set('foto_pemegang_ktp', selfieFile);
                 formData.set('foto_memegang_ktp', selfieFile);
             }
 
@@ -312,27 +328,114 @@
     }
 
     // -------------------------------------------------------------------------
-    // Upload Label & Feedback
+    // Interactive Upload Controls (Drag & Drop, Visual Preview, Accessible Click)
     // -------------------------------------------------------------------------
-    const profileInput = document.querySelector('#id_profil_usaha');
-    const uploadLabel = document.querySelector('#upload-label');
-    const uploadHint = document.querySelector('#upload-hint');
-    if (profileInput && uploadLabel && uploadHint) {
-        profileInput.addEventListener('change', () => {
-            const file = profileInput.files?.[0];
-            uploadLabel.textContent = file ? file.name : 'Pilih gambar';
-            uploadHint.textContent = file ? 'Pilih file lain untuk mengganti gambar' : 'Klik untuk memilih file PNG, JPG, atau SVG';
-        });
-    }
+    const uploadControls = document.querySelectorAll('.upload-control');
 
-    document.querySelectorAll('.registration-form input[type="file"]').forEach((input) => {
+    uploadControls.forEach((control) => {
+        const input = control.querySelector('input[type="file"]');
+        if (!input) return;
+
+        const fieldName = input.name;
+        const labelEl = control.querySelector('strong');
+        const hintEl = control.querySelector('span:not(.upload-icon)');
+        const previewEl = control.querySelector('.upload-preview');
+
+        const updateDisplay = (file) => {
+            if (file) {
+                control.classList.add('has-file');
+                if (labelEl) {
+                    labelEl.textContent = file.name;
+                }
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const sizeStr = file.size > 1024 * 1024
+                    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+                    : `${sizeKB} KB`;
+                if (hintEl) {
+                    hintEl.textContent = `Berkas dipilih (${sizeStr}). Klik untuk mengganti.`;
+                }
+
+                if (previewEl && file.type && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewEl.innerHTML = `<img src="${e.target.result}" alt="Preview ${file.name}" class="preview-thumbnail">`;
+                        previewEl.hidden = false;
+                        previewEl.removeAttribute('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else if (previewEl) {
+                    previewEl.innerHTML = `<span class="preview-badge">Berkas: ${file.name}</span>`;
+                    previewEl.hidden = false;
+                    previewEl.removeAttribute('hidden');
+                }
+
+                // Bersihkan pesan error jika ada
+                const errBox = control.parentElement?.querySelector(`[data-field-errors="${fieldName}"]`);
+                if (errBox) errBox.textContent = '';
+                control.classList.remove('is-invalid');
+            } else {
+                control.classList.remove('has-file');
+                if (labelEl) {
+                    labelEl.textContent = fieldName === 'profil_usaha' ? 'Pilih gambar' : 'Unggah File';
+                }
+                if (hintEl) {
+                    hintEl.textContent = fieldName === 'profil_usaha'
+                        ? 'Klik untuk memilih file PNG, JPG, atau SVG'
+                        : 'Klik untuk memilih file PNG, JPG atau PDF';
+                }
+                if (previewEl) {
+                    previewEl.innerHTML = '';
+                    previewEl.hidden = true;
+                    previewEl.setAttribute('hidden', '');
+                }
+            }
+        };
+
+        // Buka dialog pemilihan file saat kotak diklik
+        control.addEventListener('click', (e) => {
+            if (e.target !== input) {
+                e.preventDefault();
+                input.click();
+            }
+        });
+
+        // Dukungan aksesibilitas keyboard (Enter atau Spasi)
+        control.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                input.click();
+            }
+        });
+
+        // Event change dari native input
         input.addEventListener('change', () => {
             const file = input.files?.[0];
-            const label = document.querySelector(`[data-upload-label="${input.name}"]`);
-            const hint = document.querySelector(`[data-upload-hint="${input.name}"]`);
-            if (label && hint) {
-                label.textContent = file ? file.name : 'Unggah File';
-                hint.textContent = file ? 'Pilih file lain untuk mengganti berkas' : 'Klik untuk memilih file PNG, JPG, JPEG, atau PDF';
+            updateDisplay(file);
+        });
+
+        // Drag & drop support
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            control.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                control.classList.add('is-dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            control.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                control.classList.remove('is-dragover');
+            });
+        });
+
+        control.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                input.files = files;
+                updateDisplay(files[0]);
             }
         });
     });

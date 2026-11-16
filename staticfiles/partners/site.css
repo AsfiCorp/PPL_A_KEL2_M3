@@ -443,7 +443,7 @@ textarea.is-invalid {
     border: 1px solid var(--border-input);
     border-radius: var(--radius-md);
     background-color: var(--surface);
-    padding: 28px 16px;
+    padding: 24px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -451,11 +451,16 @@ textarea.is-invalid {
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    position: relative;
+    user-select: none;
 }
 
-.upload-control:hover {
+.upload-control:hover,
+.upload-control:focus,
+.upload-control.is-dragover {
     border-color: var(--primary);
     background-color: var(--surface-subtle);
+    outline: none;
 }
 
 .upload-icon {
@@ -466,6 +471,7 @@ textarea.is-invalid {
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .upload-icon svg {
@@ -478,20 +484,59 @@ textarea.is-invalid {
     font-weight: 600;
     color: var(--text-main);
     margin-bottom: 4px;
+    pointer-events: none;
 }
 
 .upload-control span:not(.upload-icon) {
     font-size: 12px;
     color: var(--text-muted);
+    pointer-events: none;
 }
 
+/* Accessible offscreen input - enables native file dialog reliably in all browsers */
 .upload-control input[type="file"] {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .upload-control.has-file {
     border-color: var(--primary);
-    background-color: #F0F4FA;
+    background-color: #EEF2F9;
+}
+
+.upload-preview {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.preview-thumbnail {
+    max-width: 140px;
+    max-height: 90px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.preview-badge {
+    background-color: var(--primary);
+    color: var(--on-primary);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
 }
 
 /* ==============================================================================
