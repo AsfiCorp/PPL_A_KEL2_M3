@@ -8,3 +8,5 @@ scalar-docs/node_modules/
 supabase/.temp/
 .vercel
 *.gz
+flow/
+
