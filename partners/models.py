@@ -40,7 +40,8 @@ class Partner(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='partner_applications'
+        related_name='partner_applications',
+        db_constraint=False
     )
     nama_usaha = models.CharField(max_length=255)
     kategori_usaha = models.CharField(
@@ -98,6 +99,7 @@ class Partner(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'partners'
         ordering = ['-created_at']
         verbose_name = 'Partner'
         verbose_name_plural = 'Partners'
@@ -160,6 +162,7 @@ class PartnerStatusLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'partner_status_logs'
         ordering = ['-created_at']
         verbose_name = 'Partner Status Log'
         verbose_name_plural = 'Partner Status Logs'

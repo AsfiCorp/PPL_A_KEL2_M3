@@ -175,6 +175,14 @@ STORAGES = {
 }
 
 
+# Pure microservice session & message handling: zero database session tables in production
+if 'test' in sys.argv:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
+
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
