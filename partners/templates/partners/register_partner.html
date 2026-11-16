@@ -3,11 +3,6 @@
 {% block title %}Pendaftaran partner | Araya Business Hub{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Jejak halaman">
-    <a href="{% url 'partner_ui:home' %}">Beranda</a><span aria-hidden="true">/</span>
-    <a href="{% url 'partner_ui:my-store' %}">Toko saya</a><span aria-hidden="true">/</span>
-    <span>Pendaftaran partner</span>
-</nav>
 <section class="page-heading">
     <div>
         <h1>Pendaftaran Partner</h1>
@@ -24,8 +19,9 @@
 >
     {% csrf_token %}
     <input type="hidden" name="complete_registration" value="true">
+    
     <div class="form-summary" role="alert" aria-live="assertive" {% if not registration_errors %}hidden{% endif %}>
-        <strong>Pendaftaran belum dapat dikirim.</strong>
+        <strong>Pendaftaran belum dapat dikirim. Periksa isian berikut:</strong>
         <ul class="form-summary-errors">
             {% for field, errors in registration_errors.items %}
                 {% for error in errors %}<li>{{ field }}: {{ error }}</li>{% endfor %}
@@ -33,93 +29,101 @@
         </ul>
     </div>
 
+    <!-- Stepper Indicator -->
     <ol class="registration-steps" aria-label="Tahapan pendaftaran">
-        <li class="is-active" aria-current="step"><span>1</span><small>Informasi Usaha</small></li>
-        <li><span>2</span><small>Dokumen Pendukung</small></li>
-        <li><span>3</span><small>Akun</small></li>
-        <li><span>4</span><small>Konfirmasi</small></li>
+        <li class="is-active" data-indicator="1" aria-current="step"><span>1</span><small>Informasi Usaha</small></li>
+        <li data-indicator="2"><span>2</span><small>Dokumen Pendukung</small></li>
+        <li data-indicator="3"><span>3</span><small>Akun</small></li>
+        <li data-indicator="4"><span>4</span><small>Konfirmasi</small></li>
     </ol>
 
-    <section class="registration-step" data-step="1" aria-labelledby="business-step-title">
+    <!-- Langkah 1: Informasi Usaha -->
+    <section class="registration-step" data-step="1" aria-labelledby="step-1-title">
         <fieldset class="form-fieldset">
-            <legend id="business-step-title">Informasi Usaha</legend>
+            <legend id="step-1-title">Informasi Usaha</legend>
             <div class="form-grid">
                 <div class="form-field">
-                    <label for="{{ form.nama_usaha.id_for_label }}">Nama Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.nama_usaha }}
+                    <label for="id_nama_usaha">Nama Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_nama_usaha" name="nama_usaha" type="text" placeholder="Masukan nama usaha" value="{{ form.nama_usaha.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="nama_usaha"></div>
                 </div>
                 <div class="form-field">
-                    <label for="{{ form.kategori_usaha.id_for_label }}">Kategori Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.kategori_usaha }}
+                    <label for="id_kategori_usaha">Kategori Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <select class="form-control" id="id_kategori_usaha" name="kategori_usaha" required>
+                        <option value="" disabled {% if not form.kategori_usaha.value %}selected{% endif %}>Pilih Kategori</option>
+                        <option value="Produk" {% if form.kategori_usaha.value == 'Produk' %}selected{% endif %}>Produk</option>
+                        <option value="Jasa" {% if form.kategori_usaha.value == 'Jasa' %}selected{% endif %}>Jasa</option>
+                    </select>
                     <div class="field-errors" data-field-errors="kategori_usaha"></div>
                 </div>
                 <div class="form-field form-field-wide">
-                    <label for="{{ form.deskripsi_usaha.id_for_label }}">Deskripsi Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.deskripsi_usaha }}
+                    <label for="id_deskripsi_usaha">Deskripsi Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <textarea class="form-control" id="id_deskripsi_usaha" name="deskripsi_usaha" placeholder="Ceritakan usaha Anda" required>{{ form.deskripsi_usaha.value|default:'' }}</textarea>
                     <div class="field-errors" data-field-errors="deskripsi_usaha"></div>
                 </div>
                 <div class="form-field form-field-wide">
-                    <label for="{{ form.alamat_usaha.id_for_label }}">Alamat Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.alamat_usaha }}
+                    <label for="id_alamat_usaha">Alamat Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_alamat_usaha" name="alamat_usaha" type="text" placeholder="Masukan alamat usaha" value="{{ form.alamat_usaha.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="alamat_usaha"></div>
                 </div>
                 <div class="form-field">
-                    <label for="{{ form.nomor_telepon_usaha.id_for_label }}">Nomor Telepon Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.nomor_telepon_usaha }}
+                    <label for="id_nomor_telepon_usaha">Nomor Telepon Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_nomor_telepon_usaha" name="nomor_telepon_usaha" type="text" placeholder="Contoh: 081234567890" value="{{ form.nomor_telepon_usaha.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="nomor_telepon_usaha"></div>
                 </div>
                 <div class="form-field">
-                    <label for="{{ form.email_usaha.id_for_label }}">Email Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    {{ form.email_usaha }}
+                    <label for="id_email_usaha">Email Usaha <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <input class="form-control" id="id_email_usaha" name="email_usaha" type="email" placeholder="Contoh: usaha@email.com" value="{{ form.email_usaha.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="email_usaha"></div>
                 </div>
                 <div class="form-field form-field-wide">
-                    <label for="{{ form.profil_usaha.id_for_label }}">Profil Usaha <span class="optional-note">(opsional)</span></label>
-                    <label class="upload-control" for="{{ form.profil_usaha.id_for_label }}">
+                    <label for="id_profil_usaha">Profil Usaha <span class="optional-note">(opsional)</span></label>
+                    <label class="upload-control" for="id_profil_usaha">
                         <span class="upload-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
                         <strong id="upload-label">Pilih gambar</strong>
-                        <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau JPEG</span>
-                        {{ form.profil_usaha }}
+                        <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau SVG</span>
+                        <input id="id_profil_usaha" name="profil_usaha" type="file" accept="image/*">
                     </label>
                     <div class="field-errors" data-field-errors="profil_usaha"></div>
-                    {% if form.profil_usaha.help_text %}<p class="help-text">{{ form.profil_usaha.help_text }}</p>{% endif %}
                 </div>
             </div>
         </fieldset>
     </section>
 
-    <section class="registration-step" data-step="2" aria-labelledby="documents-step-title" hidden>
+    <!-- Langkah 2: Dokumen Pendukung -->
+    <section class="registration-step" data-step="2" aria-labelledby="step-2-title" hidden>
         <fieldset class="form-fieldset">
-            <legend id="documents-step-title">Dokumen Pendukung</legend>
+            <legend id="step-2-title">Dokumen Pendukung</legend>
             <p class="step-description">Lengkapi identitas penanggung jawab unit usaha Anda.</p>
             <div class="form-grid">
                 <div class="form-field">
                     <label for="id_nama_lengkap">Nama Lengkap <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    <input class="form-control" id="id_nama_lengkap" name="nama_lengkap" type="text" autocomplete="name" placeholder="Masukkan nama lengkap" required>
+                    <input class="form-control" id="id_nama_lengkap" name="nama_lengkap" type="text" placeholder="Masukan nama lengkap" value="{{ form.nama_lengkap.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="nama_lengkap"></div>
                 </div>
                 <div class="form-field">
                     <label for="id_nik">Nomor Induk Kependudukan (NIK) <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    <input class="form-control" id="id_nik" name="nik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="Masukkan 16 digit NIK" required>
+                    <input class="form-control" id="id_nik" name="nik" type="text" maxlength="16" placeholder="Masukan 16 digit NIK" value="{{ form.nik.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="nik"></div>
                 </div>
                 <div class="form-field">
                     <label for="id_tempat_lahir">Tempat Lahir <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    <input class="form-control" id="id_tempat_lahir" name="tempat_lahir" type="text" placeholder="Masukkan tempat lahir" required>
+                    <input class="form-control" id="id_tempat_lahir" name="tempat_lahir" type="text" placeholder="Masukan tempat lahir" value="{{ form.tempat_lahir.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="tempat_lahir"></div>
                 </div>
                 <div class="form-field">
                     <label for="id_tanggal_lahir">Tanggal Lahir <span class="required-mark" aria-label="wajib diisi">*</span></label>
-                    <input class="form-control" id="id_tanggal_lahir" name="tanggal_lahir" type="date" required>
+                    <input class="form-control" id="id_tanggal_lahir" name="tanggal_lahir" type="date" placeholder="Masukan tanggal lahir" value="{{ form.tanggal_lahir.value|default:'' }}" required>
                     <div class="field-errors" data-field-errors="tanggal_lahir"></div>
                 </div>
                 <div class="form-field form-field-wide">
                     <label for="id_ktp">Kartu Tanda Penduduk <span class="required-mark" aria-label="wajib diisi">*</span></label>
                     <label class="upload-control" for="id_ktp">
-                        <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span class="upload-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
                         <strong data-upload-label="ktp">Unggah File</strong>
                         <span data-upload-hint="ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
                         <input id="id_ktp" name="ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
@@ -127,9 +131,11 @@
                     <div class="field-errors" data-field-errors="ktp"></div>
                 </div>
                 <div class="form-field form-field-wide">
-                    <label for="id_foto_pemegang_ktp">Swafoto dengan KTP <span class="required-mark" aria-label="wajib diisi">*</span></label>
+                    <label for="id_foto_pemegang_ktp">Foto Orang Memegang KTP <span class="required-mark" aria-label="wajib diisi">*</span></label>
                     <label class="upload-control" for="id_foto_pemegang_ktp">
-                        <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span class="upload-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
                         <strong data-upload-label="foto_pemegang_ktp">Unggah File</strong>
                         <span data-upload-hint="foto_pemegang_ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
                         <input id="id_foto_pemegang_ktp" name="foto_pemegang_ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
@@ -140,9 +146,10 @@
         </fieldset>
     </section>
 
-    <section class="registration-step" data-step="3" aria-labelledby="account-step-title" hidden>
+    <!-- Langkah 3: Akun -->
+    <section class="registration-step" data-step="3" aria-labelledby="step-3-title" hidden>
         <fieldset class="form-fieldset">
-            <legend id="account-step-title">Akun</legend>
+            <legend id="step-3-title">Akun</legend>
             <p class="step-description">Buat akun untuk mengakses Araya Business Hub.</p>
             <div class="form-grid form-grid-single">
                 <div class="form-field form-field-wide">
@@ -164,25 +171,31 @@
         </fieldset>
     </section>
 
-    <section class="registration-step" data-step="4" aria-labelledby="confirmation-step-title" hidden>
-        <h2 id="confirmation-step-title">Konfirmasi Pendaftaran</h2>
-        <p class="step-description">Periksa kembali informasi dan dokumen yang telah Anda lengkapi sebelum mengirim pendaftaran.</p>
-        <div class="confirmation-card">
-            <h3>Informasi Usaha</h3>
-            <dl class="confirmation-list" data-confirmation="business"></dl>
-        </div>
-        <div class="confirmation-card">
-            <h3>Informasi Penanggung Jawab</h3>
-            <dl class="confirmation-list" data-confirmation="responsible"></dl>
-        </div>
-        <div class="confirmation-card">
-            <h3>Akun</h3>
-            <dl class="confirmation-list" data-confirmation="account"></dl>
-        </div>
+    <!-- Langkah 4: Konfirmasi Pendaftaran -->
+    <section class="registration-step" data-step="4" aria-labelledby="step-4-title" hidden>
+        <fieldset class="form-fieldset">
+            <legend id="step-4-title">Konfirmasi Pendaftaran</legend>
+            <p class="step-description">Periksa kembali informasi dan dokumen yang telah Anda lengkapi sebelum mengirim pendaftaran.</p>
+            <div class="confirmation-section">
+                <div class="confirmation-card">
+                    <h3>Informasi Usaha</h3>
+                    <dl class="confirmation-list" data-confirmation="business"></dl>
+                </div>
+                <div class="confirmation-card">
+                    <h3>Informasi Penanggung Jawab</h3>
+                    <dl class="confirmation-list" data-confirmation="responsible"></dl>
+                </div>
+                <div class="confirmation-card">
+                    <h3>Akun</h3>
+                    <dl class="confirmation-list" data-confirmation="account"></dl>
+                </div>
+            </div>
+        </fieldset>
     </section>
 
+    <!-- Tombol Navigasi Stepper -->
     <div class="form-actions">
-        <a class="button button-secondary" href="{% url 'partner_ui:my-store' %}">Batal</a>
+        <a class="button button-secondary" href="{% url 'partner_ui:home' %}">Batal</a>
         <button class="button button-secondary" type="button" data-step-back hidden>Kembali</button>
         <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
         <button class="button button-primary" type="submit" data-step-submit hidden>Kirim Pendaftaran</button>

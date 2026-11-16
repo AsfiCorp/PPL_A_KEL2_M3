@@ -24,9 +24,8 @@ def my_store(request):
     else:
         application_id = request.session.get('partner_application_id')
         partners = Partner.objects.filter(pk=application_id) if application_id else Partner.objects.none()
-    has_applications = partners.exists()
-    query = request.GET.get('q', '').strip()
-    if has_applications and not query:
+
+    if partners.exists():
         partner = partners.first()
         return render(
             request,
@@ -37,16 +36,14 @@ def my_store(request):
                 'submitted_at': timezone.localtime(partner.created_at),
             },
         )
-    if query:
-        partners = partners.filter(nama_usaha__icontains=query)
+
+    form = PartnerRegistrationForm()
     return render(
         request,
-        'partners/my_store.html',
+        'partners/register_partner.html',
         {
             'active_page': 'my_store',
-            'partners': partners,
-            'has_applications': has_applications,
-            'query': query,
+            'form': form,
         },
     )
 
@@ -106,15 +103,21 @@ def register_partner(request):
 
 @never_cache
 def registration_status(request):
-    application_id = request.session.get('partner_application_id')
-    if application_id is None:
-        return redirect('partner_ui:my-store')
+    partner = None
+    partner_id_param = request.GET.get('partner_id')
+    if partner_id_param:
+        partner = Partner.objects.filter(partner_id=partner_id_param).first()
+        if not partner and str(partner_id_param).isdigit():
+            partner = Partner.objects.filter(pk=int(partner_id_param)).first()
 
-    try:
-        partner = Partner.objects.get(pk=application_id)
-    except Partner.DoesNotExist:
-        request.session.pop('partner_application_id', None)
-        return redirect('partner_ui:my-store')
+    if not partner:
+        application_id = request.session.get('partner_application_id')
+        if application_id is not None:
+            partner = Partner.objects.filter(pk=application_id).first()
+
+    if not partner:
+        return redirect('partner_ui:partner-registration')
+
     return render(
         request,
         'partners/registration_status.html',

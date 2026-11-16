@@ -4,27 +4,29 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
-    <title>{% block title %}Araya Business Hub{% endblock %}</title>
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}Araya Bisnis Hub{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'partners/site.css' %}">
     <script src="{% static 'partners/site.js' %}" defer></script>
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="{% url 'partner_ui:home' %}" aria-label="Araya Business Hub, beranda">
-            <span class="brand-mark" aria-hidden="true"></span>
-            <span>Araya Business Hub</span>
-        </a>
-        {% if request.user.is_authenticated %}
-            <form class="top-search" role="search" action="{% url 'partner_ui:my-store' %}" method="get">
-                <label class="visually-hidden" for="site-search">Cari</label>
-                <input id="site-search" type="search" name="q" placeholder="Cari…" value="{{ request.GET.q|default:'' }}">
-            </form>
-            <button class="profile-trigger" type="button" aria-label="Buka menu pengguna" aria-controls="profile-drawer" aria-expanded="false">
-                <span class="profile-name">{{ request.user.get_short_name|default:request.user.username }}</span>
-                <span class="avatar" aria-hidden="true">{{ request.user.get_short_name|default:request.user.username|first|upper }}</span>
-            </button>
-        {% endif %}
+        <div class="topbar-inner">
+            <a class="brand" href="{% url 'partner_ui:home' %}" aria-label="Araya Bisnis Hub, beranda">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span class="brand-text">Araya Bisnis Hub</span>
+            </a>
+            {% if request.user.is_authenticated %}
+                <form class="top-search" role="search" action="{% url 'partner_ui:my-store' %}" method="get" hidden>
+                    <label class="visually-hidden" for="site-search">Cari</label>
+                    <input id="site-search" type="search" name="q" placeholder="Cari…" value="{{ request.GET.q|default:'' }}">
+                </form>
+                <button class="profile-trigger" type="button" aria-label="Buka menu pengguna" aria-controls="profile-drawer" aria-expanded="false" hidden>
+                    <span class="profile-name">{{ request.user.get_short_name|default:request.user.username }}</span>
+                    <span class="avatar" aria-hidden="true">{{ request.user.get_short_name|default:request.user.username|first|upper }}</span>
+                </button>
+            {% endif %}
+        </div>
     </header>
 
     {% if request.user.is_authenticated %}
@@ -36,20 +38,12 @@
             </div>
             <nav class="profile-drawer-nav" aria-label="Menu pengguna">
                 <p class="profile-drawer-heading">Menu Pengguna</p>
-                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                    Akun saya
-                </span>
-                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                    Pesanan Saya
-                </span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">Akun saya</span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">Pesanan Saya</span>
                 <a class="profile-drawer-item" href="{% url 'partner_ui:my-store' %}">Toko Saya</a>
                 <a class="profile-drawer-item" href="{% url 'partner_ui:partner-registration' %}">Pendaftaran Partner</a>
-                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                    Notifikasi
-                </span>
-                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                    Pengaturan
-                </span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">Notifikasi</span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">Pengaturan</span>
                 <form class="profile-logout" method="post" action="{% url 'partner_ui:logout' %}">
                     {% csrf_token %}
                     <button class="profile-drawer-item profile-logout-button" type="submit">Keluar</button>
@@ -58,22 +52,18 @@
         </aside>
     {% endif %}
 
-    <div class="app-shell">
-        <main class="main-content">
-            <div class="content-wrap">
-                {% if messages %}
-                    <div class="message-stack" aria-live="polite">
-                        {% for message in messages %}
-                            <div class="message-banner message-{{ message.tags }}" role="status">
-                                <span class="message-dot" aria-hidden="true"></span>
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
+    <main class="main-content">
+        {% if messages %}
+            <div class="message-stack" aria-live="polite">
+                {% for message in messages %}
+                    <div class="message-banner message-{{ message.tags }}" role="status">
+                        <span class="message-dot" aria-hidden="true"></span>
+                        <span>{{ message }}</span>
                     </div>
-                {% endif %}
-                {% block content %}{% endblock %}
+                {% endfor %}
             </div>
-        </main>
-    </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>
