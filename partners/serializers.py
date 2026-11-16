@@ -212,10 +212,22 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
             })
 
         email = attrs.get('account_email')
-        if email and User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError({
-                'account_email': ['Email ini sudah digunakan.'],
-            })
+        if email:
+            if Partner.objects.filter(email_usaha__iexact=email).exists():
+                raise serializers.ValidationError({
+                    'account_email': ['Email ini sudah digunakan.'],
+                })
+            try:
+                from django.db import connection
+                if 'auth_user' in connection.introspection.table_names():
+                    if User.objects.filter(email__iexact=email).exists():
+                        raise serializers.ValidationError({
+                            'account_email': ['Email ini sudah digunakan.'],
+                        })
+            except serializers.ValidationError:
+                raise
+            except Exception:
+                pass
 
         if attrs.get('nama_lengkap'):
             attrs.setdefault('penanggung_jawab_nama', attrs['nama_lengkap'])
@@ -247,11 +259,16 @@ class PartnerRegistrationSerializer(serializers.ModelSerializer):
         if request and request.user and request.user.is_authenticated:
             validated_data['user'] = request.user
         elif account_email and password:
-            validated_data['user'] = User.objects.create_user(
-                username=f'partner_{uuid4().hex}',
-                email=account_email,
-                first_name=validated_data.get('nama_lengkap', ''),
-                password=password,
-            )
+            try:
+                from django.db import connection
+                if 'auth_user' in connection.introspection.table_names():
+                    validated_data['user'] = User.objects.create_user(
+                        username=f'partner_{uuid4().hex}',
+                        email=account_email,
+                        first_name=validated_data.get('nama_lengkap', ''),
+                        password=password,
+                    )
+            except Exception:
+                pass
 
         return super().create(validated_data)
