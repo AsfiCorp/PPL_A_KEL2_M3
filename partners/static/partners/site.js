@@ -31,6 +31,100 @@
     };
 
     // -------------------------------------------------------------------------
+    // SISTEM NOTIFIKASI (TOAST / BANNER) SUKSES & GAGAL
+    // - Tanpa titik hijau
+    // - Tombol silang di ujung kanan untuk menutup manual
+    // - Otomatis hilang sendiri setelah 5 detik
+    // -------------------------------------------------------------------------
+    const dismissBanner = (banner) => {
+        if (!banner || banner.classList.contains('is-hiding')) return;
+        banner.classList.add('is-hiding');
+        setTimeout(() => {
+            banner.remove();
+        }, 400);
+    };
+
+    const setupBannerDismiss = (banner) => {
+        if (!banner || banner.dataset.dismissSetup) return;
+        banner.dataset.dismissSetup = 'true';
+
+        // Tombol silang tutup manual
+        const closeBtn = banner.querySelector('.message-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                dismissBanner(banner);
+            });
+        }
+
+        // Auto dismiss setelah 5 detik
+        const duration = parseInt(banner.dataset.autoDismiss || '5000', 10);
+        if (duration > 0) {
+            setTimeout(() => {
+                dismissBanner(banner);
+            }, duration);
+        }
+    };
+
+    window.showNotification = (message, type = 'success', duration = 5000) => {
+        let stack = document.getElementById('message-stack');
+        if (!stack) {
+            stack = document.querySelector('.message-stack');
+        }
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.className = 'message-stack';
+            stack.id = 'message-stack';
+            stack.setAttribute('aria-live', 'polite');
+            const main = document.querySelector('.main-content') || document.body;
+            main.insertBefore(stack, main.firstChild);
+        }
+
+        const banner = document.createElement('div');
+        banner.className = `message-banner message-${type}`;
+        banner.setAttribute('role', 'status');
+        banner.dataset.autoDismiss = String(duration);
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'message-text';
+        textSpan.textContent = message;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'message-close';
+        closeBtn.setAttribute('aria-label', 'Tutup notifikasi');
+        closeBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        `;
+
+        banner.appendChild(textSpan);
+        banner.appendChild(closeBtn);
+        stack.appendChild(banner);
+
+        setupBannerDismiss(banner);
+    };
+
+    // Inisialisasi notifikasi yang sudah dirender server di base.html
+    document.querySelectorAll('.message-banner').forEach(setupBannerDismiss);
+
+    // Cek notifikasi dari sessionStorage jika baru dialihkan setelah submit
+    try {
+        const storedNotif = sessionStorage.getItem('flash_notification');
+        if (storedNotif) {
+            sessionStorage.removeItem('flash_notification');
+            const parsed = JSON.parse(storedNotif);
+            if (parsed && parsed.message) {
+                window.showNotification(parsed.message, parsed.type || 'success', 5000);
+            }
+        }
+    } catch (e) {
+        // Abaikan parse error
+    }
+
+    // -------------------------------------------------------------------------
     // Logika Stepper & Form Pendaftaran
     // -------------------------------------------------------------------------
     const registrationForm = document.querySelector('.registration-form');
@@ -262,6 +356,10 @@
 
                 if (response.ok && json.success) {
                     const partnerId = json.data?.partner_id || json.data?.id;
+                    sessionStorage.setItem('flash_notification', JSON.stringify({
+                        message: 'Pendaftaran partner berhasil dikirim.',
+                        type: 'success'
+                    }));
                     if (partnerId) {
                         sessionStorage.setItem('current_partner_id', partnerId);
                         window.location.href = `/pendaftaran-partner/status/?partner_id=${encodeURIComponent(partnerId)}`;
@@ -276,6 +374,8 @@
                     }
 
                     const errors = json.error?.fields || json.errors || {};
+                    const errorMsg = json.error?.message || json.message || 'Pendaftaran partner gagal dikirim. Silakan periksa kembali data Anda.';
+                    window.showNotification(errorMsg, 'error', 5000);
                     let firstErrorStep = null;
 
                     Object.entries(errors).forEach(([field, msg]) => {

@@ -72,6 +72,7 @@ def register_partner(request):
                 return redirect('partner_ui:registration-status')
 
             form = PartnerRegistrationForm(request.POST, request.FILES)
+            messages.error(request, 'Pendaftaran partner gagal dikirim. Silakan periksa kembali data Anda.')
             return render(
                 request,
                 'partners/register_partner.html',

@@ -53,16 +53,21 @@
     {% endif %}
 
     <main class="main-content">
-        {% if messages %}
-            <div class="message-stack" aria-live="polite">
+        <div class="message-stack" id="message-stack" aria-live="polite">
+            {% if messages %}
                 {% for message in messages %}
-                    <div class="message-banner message-{{ message.tags }}" role="status">
-                        <span class="message-dot" aria-hidden="true"></span>
-                        <span>{{ message }}</span>
+                    <div class="message-banner message-{{ message.tags }}" role="status" data-auto-dismiss="5000">
+                        <span class="message-text">{{ message }}</span>
+                        <button type="button" class="message-close" aria-label="Tutup notifikasi">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
                 {% endfor %}
-            </div>
-        {% endif %}
+            {% endif %}
+        </div>
         {% block content %}{% endblock %}
     </main>
 </body>
