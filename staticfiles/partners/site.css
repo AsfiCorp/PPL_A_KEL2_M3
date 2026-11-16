@@ -56,6 +56,11 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Strict Hidden Directive to prevent hidden element leakage */
+[hidden], section[hidden], button[hidden], div[hidden], a[hidden] {
+    display: none !important;
+}
+
 /* ==============================================================================
    Header Topbar
    ============================================================================== */
@@ -119,7 +124,7 @@ body {
 }
 
 .breadcrumb {
-    display: none; /* Sesuai design mockup, breadcrumb ditiadakan */
+    display: none; /* Sesuai design mockup, breadcrumb ditiadakan di visual */
 }
 
 /* ==============================================================================
@@ -167,8 +172,8 @@ body {
 }
 
 .partner-landing-art svg {
-    width: 280px;
-    height: 280px;
+    width: 320px;
+    height: 320px;
     color: var(--primary);
 }
 
@@ -211,7 +216,6 @@ body {
     flex-direction: column;
     align-items: center;
     position: relative;
-    z-index: 2;
     flex: 1;
 }
 
@@ -227,6 +231,8 @@ body {
     background-color: var(--surface);
     color: var(--primary);
     border: 2px solid var(--primary);
+    position: relative;
+    z-index: 2;
     transition: all 0.2s ease;
 }
 
@@ -260,7 +266,8 @@ body {
     width: 100%;
     height: 2px;
     background-color: var(--border-input);
-    z-index: -1;
+    z-index: 1;
+    transition: background-color 0.2s ease;
 }
 
 .registration-steps li.is-complete:not(:last-child)::after {
@@ -268,7 +275,7 @@ body {
 }
 
 /* ==============================================================================
-   Card Container
+   Card Containers & Stepper Form Slicing
    ============================================================================== */
 .card {
     background-color: var(--surface);
@@ -278,9 +285,22 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.registration-form {
+/* Form registration dibuat transparan agar stepper berada di latar luar kartu putih */
+.card.registration-form {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
     max-width: 960px;
     margin: 0 auto;
+}
+
+.registration-step {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px 40px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 /* ==============================================================================
@@ -311,12 +331,12 @@ body {
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 20px 24px;
 }
 
 .form-grid-single {
     grid-template-columns: 1fr;
-    max-width: 540px;
+    max-width: 100%;
 }
 
 .form-field-wide {
@@ -381,7 +401,7 @@ textarea:focus {
 
 textarea {
     resize: vertical;
-    min-height: 96px;
+    min-height: 110px;
 }
 
 /* Validasi Galat (3-Form Daftar tidak di isi.png) */
@@ -398,6 +418,7 @@ textarea.is-invalid {
     font-size: 12px;
     margin-top: 4px;
     font-weight: 500;
+    min-height: 16px;
 }
 
 .form-summary {
@@ -441,15 +462,15 @@ textarea.is-invalid {
     width: 32px;
     height: 32px;
     margin-bottom: 8px;
-    color: var(--primary);
+    color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .upload-icon svg {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
 }
 
 .upload-control strong {
@@ -459,13 +480,18 @@ textarea.is-invalid {
     margin-bottom: 4px;
 }
 
-.upload-control span {
+.upload-control span:not(.upload-icon) {
     font-size: 12px;
     color: var(--text-muted);
 }
 
 .upload-control input[type="file"] {
     display: none;
+}
+
+.upload-control.has-file {
+    border-color: var(--primary);
+    background-color: #F0F4FA;
 }
 
 /* ==============================================================================
@@ -492,7 +518,7 @@ textarea.is-invalid {
 
 .confirmation-list {
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 220px 1fr;
     row-gap: 12px;
     column-gap: 16px;
     font-size: 14px;
@@ -517,14 +543,16 @@ textarea.is-invalid {
 }
 
 /* ==============================================================================
-   Buttons & Form Actions
+   Buttons & Actions per Step
    ============================================================================== */
+.step-actions,
 .form-actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
     margin-top: 32px;
+    padding-top: 16px;
 }
 
 .button {
@@ -567,9 +595,13 @@ textarea.is-invalid {
    Status Pendaftaran Card (4-Status Pending, ditolak, terverifikasi)
    ============================================================================== */
 .status-card {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 48px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .status-intro {
@@ -623,18 +655,21 @@ textarea.is-invalid {
     color: var(--text-muted);
     font-size: 13.5px;
     line-height: 1.5;
+    max-width: 780px;
+    margin: 20px auto 0;
 }
 
 .status-notice-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    border: 1.5px solid var(--text-muted);
+    border: 1.5px solid var(--text-main);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
+    color: var(--text-main);
     flex-shrink: 0;
 }
 
@@ -660,13 +695,13 @@ textarea.is-invalid {
 .detail-row {
     display: flex;
     align-items: center;
-    padding: 12px 0;
+    padding: 14px 0;
     border-bottom: 1px solid var(--border);
     font-size: 14px;
 }
 
 .detail-row dt {
-    width: 200px;
+    width: 220px;
     color: var(--text-muted);
     font-weight: 500;
 }
@@ -756,7 +791,9 @@ textarea.is-invalid {
     .form-grid {
         grid-template-columns: 1fr;
     }
-    .card {
+    .card,
+    .registration-step,
+    .status-card {
         padding: 24px 16px;
     }
     .detail-row {

@@ -1,6 +1,6 @@
 {% extends 'partners/base.html' %}
 
-{% block title %}Pendaftaran partner | Araya Business Hub{% endblock %}
+{% block title %}Pendaftaran partner | Araya Bisnis Hub{% endblock %}
 
 {% block content %}
 <section class="page-heading">
@@ -19,7 +19,7 @@
 >
     {% csrf_token %}
     <input type="hidden" name="complete_registration" value="true">
-    
+
     <div class="form-summary" role="alert" aria-live="assertive" {% if not registration_errors %}hidden{% endif %}>
         <strong>Pendaftaran belum dapat dikirim. Periksa isian berikut:</strong>
         <ul class="form-summary-errors">
@@ -31,10 +31,22 @@
 
     <!-- Stepper Indicator -->
     <ol class="registration-steps" aria-label="Tahapan pendaftaran">
-        <li class="is-active" data-indicator="1" aria-current="step"><span>1</span><small>Informasi Usaha</small></li>
-        <li data-indicator="2"><span>2</span><small>Dokumen Pendukung</small></li>
-        <li data-indicator="3"><span>3</span><small>Akun</small></li>
-        <li data-indicator="4"><span>4</span><small>Konfirmasi</small></li>
+        <li class="is-active" data-indicator="1" aria-current="step">
+            <span>1</span>
+            <small>Informasi Usaha</small>
+        </li>
+        <li data-indicator="2">
+            <span>2</span>
+            <small>Dokumen Pendukung</small>
+        </li>
+        <li data-indicator="3">
+            <span>3</span>
+            <small>Akun</small>
+        </li>
+        <li data-indicator="4">
+            <span>4</span>
+            <small>Konfirmasi</small>
+        </li>
     </ol>
 
     <!-- Langkah 1: Informasi Usaha -->
@@ -82,12 +94,15 @@
                         <span class="upload-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
-                        <strong id="upload-label">Pilih gambar</strong>
-                        <span id="upload-hint">Klik untuk memilih file PNG, JPG, atau SVG</span>
+                        <strong>Pilih gambar</strong>
+                        <span>Klik untuk memilih file PNG, JPG, atau SVG</span>
                         <input id="id_profil_usaha" name="profil_usaha" type="file" accept="image/*">
                     </label>
                     <div class="field-errors" data-field-errors="profil_usaha"></div>
                 </div>
+            </div>
+            <div class="step-actions">
+                <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
             </div>
         </fieldset>
     </section>
@@ -124,8 +139,8 @@
                         <span class="upload-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
-                        <strong data-upload-label="ktp">Unggah File</strong>
-                        <span data-upload-hint="ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
+                        <strong>Unggah File</strong>
+                        <span>Klik untuk memilih file PNG, JPG atau PDF</span>
                         <input id="id_ktp" name="ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
                     </label>
                     <div class="field-errors" data-field-errors="ktp"></div>
@@ -136,12 +151,16 @@
                         <span class="upload-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
-                        <strong data-upload-label="foto_pemegang_ktp">Unggah File</strong>
-                        <span data-upload-hint="foto_pemegang_ktp">Klik untuk memilih file PNG, JPG, JPEG, atau PDF</span>
+                        <strong>Unggah File</strong>
+                        <span>Klik untuk memilih file PNG, JPG atau PDF</span>
                         <input id="id_foto_pemegang_ktp" name="foto_pemegang_ktp" type="file" accept=".png,.jpg,.jpeg,.pdf" required>
                     </label>
                     <div class="field-errors" data-field-errors="foto_pemegang_ktp"></div>
                 </div>
+            </div>
+            <div class="step-actions">
+                <button class="button button-secondary" type="button" data-step-back>Kembali</button>
+                <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
             </div>
         </fieldset>
     </section>
@@ -168,6 +187,10 @@
                     <div class="field-errors" data-field-errors="confirm_password"></div>
                 </div>
             </div>
+            <div class="step-actions">
+                <button class="button button-secondary" type="button" data-step-back>Kembali</button>
+                <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
+            </div>
         </fieldset>
     </section>
 
@@ -190,15 +213,11 @@
                     <dl class="confirmation-list" data-confirmation="account"></dl>
                 </div>
             </div>
+            <div class="step-actions">
+                <button class="button button-secondary" type="button" data-step-back>Kembali</button>
+                <button class="button button-primary" type="submit" data-step-submit>Kirim Pendaftaran</button>
+            </div>
         </fieldset>
     </section>
-
-    <!-- Tombol Navigasi Stepper -->
-    <div class="form-actions">
-        <a class="button button-secondary" href="{% url 'partner_ui:home' %}">Batal</a>
-        <button class="button button-secondary" type="button" data-step-back hidden>Kembali</button>
-        <button class="button button-primary" type="button" data-step-next>Lanjutkan</button>
-        <button class="button button-primary" type="submit" data-step-submit hidden>Kirim Pendaftaran</button>
-    </div>
 </form>
 {% endblock %}

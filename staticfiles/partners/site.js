@@ -37,16 +37,21 @@
     if (registrationForm) {
         const steps = Array.from(registrationForm.querySelectorAll('.registration-step'));
         const indicators = Array.from(registrationForm.querySelectorAll('.registration-steps li'));
-        const backButton = registrationForm.querySelector('[data-step-back]');
-        const nextButton = registrationForm.querySelector('[data-step-next]');
+        const nextButtons = Array.from(registrationForm.querySelectorAll('[data-step-next]'));
+        const backButtons = Array.from(registrationForm.querySelectorAll('[data-step-back]'));
         const submitButton = registrationForm.querySelector('[data-step-submit]');
-        const cancelLink = registrationForm.querySelector('.form-actions > a');
         let currentStep = 1;
 
         const showStep = (step) => {
             currentStep = step;
             steps.forEach((section) => {
-                section.hidden = Number(section.dataset.step) !== step;
+                const isCurrent = Number(section.dataset.step) === step;
+                section.hidden = !isCurrent;
+                if (isCurrent) {
+                    section.removeAttribute('hidden');
+                } else {
+                    section.setAttribute('hidden', '');
+                }
             });
             indicators.forEach((indicator, index) => {
                 const indicatorStep = index + 1;
@@ -58,10 +63,6 @@
                     indicator.removeAttribute('aria-current');
                 }
             });
-            if (backButton) backButton.hidden = step === 1;
-            if (nextButton) nextButton.hidden = step === steps.length;
-            if (submitButton) submitButton.hidden = step !== steps.length;
-            if (cancelLink) cancelLink.hidden = step !== 1;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
@@ -187,8 +188,8 @@
             });
         };
 
-        if (nextButton) {
-            nextButton.addEventListener('click', () => {
+        nextButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
                 if (!validateStep(currentStep)) return;
                 const nextStep = currentStep + 1;
                 if (nextStep === steps.length) {
@@ -196,14 +197,14 @@
                 }
                 showStep(nextStep);
             });
-        }
+        });
 
-        if (backButton) {
-            backButton.addEventListener('click', () => {
+        backButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
                 clearFieldErrors(registrationForm);
                 showStep(currentStep - 1);
             });
-        }
+        });
 
         // ---------------------------------------------------------------------
         // HIT BACKEND REST API LANGSUNG (POST /api/m3/v1/partners/)
