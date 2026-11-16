@@ -12,66 +12,51 @@
 <body>
     <header class="topbar">
         <a class="brand" href="{% url 'partner_ui:home' %}" aria-label="Araya Business Hub, beranda">
-            <span class="brand-mark" aria-hidden="true">A</span>
+            <span class="brand-mark" aria-hidden="true"></span>
             <span>Araya Business Hub</span>
         </a>
-        <form class="top-search" role="search" action="{% url 'partner_ui:my-store' %}" method="get">
-            <label class="visually-hidden" for="site-search">Cari</label>
-            <input id="site-search" type="search" name="q" placeholder="Cari…" value="{{ request.GET.q|default:'' }}">
-        </form>
-        <button class="profile-trigger" type="button" aria-label="Buka menu pengguna" aria-controls="profile-drawer" aria-expanded="false">
-            <span class="profile-name">{% if request.user.is_authenticated %}{{ request.user.get_short_name|default:request.user.username }}{% else %}Pengguna{% endif %}</span>
-            <span class="avatar" aria-hidden="true">{% if request.user.is_authenticated %}{{ request.user.get_short_name|default:request.user.username|first|upper }}{% else %}P{% endif %}</span>
-        </button>
+        {% if request.user.is_authenticated %}
+            <form class="top-search" role="search" action="{% url 'partner_ui:my-store' %}" method="get">
+                <label class="visually-hidden" for="site-search">Cari</label>
+                <input id="site-search" type="search" name="q" placeholder="Cari…" value="{{ request.GET.q|default:'' }}">
+            </form>
+            <button class="profile-trigger" type="button" aria-label="Buka menu pengguna" aria-controls="profile-drawer" aria-expanded="false">
+                <span class="profile-name">{{ request.user.get_short_name|default:request.user.username }}</span>
+                <span class="avatar" aria-hidden="true">{{ request.user.get_short_name|default:request.user.username|first|upper }}</span>
+            </button>
+        {% endif %}
     </header>
 
-    <div class="profile-drawer-backdrop" hidden></div>
-    <aside class="profile-drawer" id="profile-drawer" role="dialog" aria-modal="true" aria-label="Menu pengguna" aria-hidden="true" tabindex="-1" hidden>
-        <div class="profile-drawer-header">
-            <span class="avatar" aria-hidden="true">{% if request.user.is_authenticated %}{{ request.user.get_short_name|default:request.user.username|first|upper }}{% else %}P{% endif %}</span>
-            <strong>{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% else %}Pengguna{% endif %}</strong>
-        </div>
-        <nav class="profile-drawer-nav" aria-label="Menu pengguna">
-            <p class="profile-drawer-heading">Menu Pengguna</p>
-            <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                
-                Akun saya
-            </span>
-            <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                
-                Pesanan Saya
-            </span>
-            <a class="profile-drawer-item" href="{% url 'partner_ui:my-store' %}">
-            
-                Toko Saya
-            </a>
-            <a class="profile-drawer-item" href="{% url 'partner_ui:partner-registration' %}">
-                Pendaftaran Partner
-            </a>
-            <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                
-                Notifikasi
-            </span>
-            <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
-                
-                Pengaturan
-            </span>
-            {% if request.user.is_authenticated %}
+    {% if request.user.is_authenticated %}
+        <div class="profile-drawer-backdrop" hidden></div>
+        <aside class="profile-drawer" id="profile-drawer" role="dialog" aria-modal="true" aria-label="Menu pengguna" aria-hidden="true" tabindex="-1" hidden>
+            <div class="profile-drawer-header">
+                <span class="avatar" aria-hidden="true">{{ request.user.get_short_name|default:request.user.username|first|upper }}</span>
+                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+            </div>
+            <nav class="profile-drawer-nav" aria-label="Menu pengguna">
+                <p class="profile-drawer-heading">Menu Pengguna</p>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
+                    Akun saya
+                </span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
+                    Pesanan Saya
+                </span>
+                <a class="profile-drawer-item" href="{% url 'partner_ui:my-store' %}">Toko Saya</a>
+                <a class="profile-drawer-item" href="{% url 'partner_ui:partner-registration' %}">Pendaftaran Partner</a>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
+                    Notifikasi
+                </span>
+                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Belum tersedia">
+                    Pengaturan
+                </span>
                 <form class="profile-logout" method="post" action="{% url 'partner_ui:logout' %}">
                     {% csrf_token %}
-                    <button class="profile-drawer-item profile-logout-button" type="submit">
-                        
-                        Keluar
-                    </button>
+                    <button class="profile-drawer-item profile-logout-button" type="submit">Keluar</button>
                 </form>
-            {% else %}
-                <span class="profile-drawer-item is-unavailable" aria-disabled="true" title="Masuk untuk keluar">
-                   
-                    Keluar
-                </span>
-            {% endif %}
-        </nav>
-    </aside>
+            </nav>
+        </aside>
+    {% endif %}
 
     <div class="app-shell">
         <main class="main-content">

@@ -325,16 +325,30 @@ class PartnerRegistrationUITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Informasi Usaha')
         self.assertContains(response, 'multipart/form-data')
-        self.assertContains(response, 'data-api-url="/api/partners/register/"')
+        self.assertContains(response, 'action="/pendaftaran-partner/"')
         self.assertContains(response, 'data-field-errors="email_usaha"')
         self.assertContains(response, 'Dokumen Pendukung')
         self.assertContains(response, 'Konfirmasi Pendaftaran')
         self.assertContains(response, 'name="account_email"')
         self.assertContains(response, 'name="foto_pemegang_ktp"')
 
-    def test_profile_drawer_is_available_and_closed_by_default(self):
+    def test_landing_page_has_registration_call_to_action_without_account_controls(self):
         response = self.client.get(reverse('partner_ui:home'))
 
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Bergabung Menjadi Partner')
+        self.assertContains(response, 'href="/pendaftaran-partner/">Daftar Sekarang</a>')
+        self.assertNotContains(response, 'class="top-search"')
+        self.assertNotContains(response, 'class="profile-trigger"')
+        self.assertNotContains(response, 'id="profile-drawer"')
+
+    def test_profile_drawer_is_available_only_for_authenticated_users(self):
+        user = User.objects.create_user(username='drawer-user', password='password123')
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('partner_ui:home'))
+
+        self.assertContains(response, 'class="top-search"')
         self.assertContains(response, 'aria-controls="profile-drawer"')
         self.assertContains(response, 'aria-expanded="false"')
         self.assertContains(response, 'id="profile-drawer"')
@@ -443,6 +457,10 @@ class PartnerRegistrationUITestCase(TestCase):
         self.addCleanup(partner.foto_pemegang_ktp.delete, save=False)
         self.assertEqual(partner.nama_lengkap, 'Siti Aminah')
         self.assertEqual(partner.user.email, 'siti.ui@example.com')
+        status_response = self.client.get(response.url)
+        self.assertEqual(status_response.status_code, 200)
+        self.assertContains(status_response, 'Pendaftaran Berhasil Dikirim')
+        self.assertContains(status_response, 'Toko UI Test')
 
     def test_invalid_registration_renders_field_errors(self):
         response = self.client.post(self.form_url, {
